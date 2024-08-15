@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Football Player Race</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+        #field {
+            width: 100%;
+            height: 200px;
+            border: 1px solid black;
+            position: relative;
+            overflow: hidden;
+            background: green;
+            margin-bottom: 20px;
+        }
+        .player {
+            position: absolute;
+            height: 40px;
+            width: 80px;
+            background: blue;
+            color: white;
+            text-align: center;
+            line-height: 40px;
+        }
+        .player:nth-child(2n) {
+            background: red;
+        }
+    </style>
+</head>
+<body>
+    <h1>Football Player Race</h1>
+    <div>
+        <label for="playerNames">Enter player names (comma-separated):</label>
+        <input type="text" id="playerNames">
+        <label for="hours">Hours:</label>
+        <input type="number" id="hours" value="0">
+        <label for="minutes">Minutes:</label>
+        <input type="number" id="minutes" value="0">
+        <label for="seconds">Seconds:</label>
+        <input type="number" id="seconds" value="30">
+        <button onclick="startRace()">Start Race</button>
+    </div>
+    <div id="field"></div>
+    <h2>Race Time: <span id="timer">00:00:00</span></h2>
+    <script>
+        let players = [];
+        let interval;
+        let startTime;
+
+        function startRace() {
+            clearInterval(interval);
+            document.getElementById('field').innerHTML = '';
+            const playerNames = document.getElementById('playerNames').value.split(',').map(name => name.trim()).filter(name => name);
+            const hours = parseInt(document.getElementById('hours').value) || 0;
+            const minutes = parseInt(document.getElementById('minutes').value) || 0;
+            const seconds = parseInt(document.getElementById('seconds').value) || 0;
+            const duration = (hours * 3600) + (minutes * 60) + seconds;
+
+            if (playerNames.length === 0) {
+                alert('Please enter player names.');
+                return;
+            }
+
+            // Create players
+            playerNames.forEach((name, index) => {
+                const player = document.createElement('div');
+                player.className = 'player';
+                player.innerText = name;
+                player.style.left = '0px';
+                player.dataset.speed = Math.random() * (10 - 1) + 1; // Random speed between 1 and 10
+                document.getElementById('field').appendChild(player);
+            });
+
+            startTime = Date.now();
+            interval = setInterval(updateRace, 100);
+
+            setTimeout(() => {
+                clearInterval(interval);
+                alert('Race Finished!');
+            }, duration * 1000);
+        }
+
+        function updateRace() {
+            const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+            const hours = Math.floor(elapsedTime / 3600);
+            const minutes = Math.floor((elapsedTime % 3600) / 60);
+            const seconds = elapsedTime % 60;
+
+            document.getElementById('timer').innerText =
+                `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+            document.querySelectorAll('.player').forEach(player => {
+                const speed = parseFloat(player.dataset.speed);
+                const currentPosition = parseFloat(player.style.left) || 0;
+                player.style.left = `${currentPosition + speed}px`;
+            });
+        }
+    </script>
+</body>
+</html>
