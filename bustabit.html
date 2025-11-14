@@ -154,7 +154,7 @@
     submitNameBtn.onclick = async () => {
       const name = guestNameInput.value.trim();
       if (!name) return;
-      const newEntry = await push(ref(db, 'guests'), { name, pressed: false, locked: false, busts: 0 });
+      const newEntry = await push(ref(db, 'guests'), { name, pressed: false, busts: 0 });
       currentGuestKey = newEntry.key;
       guestNameScreen.classList.add('hidden');
       buzzerScreen.classList.remove('hidden');
@@ -181,10 +181,11 @@
     };
 
     resetBuzzersBtn.onclick = async () => {
-      const guestsSnap = await get(ref(db, 'guests'));
-      guestsSnap.forEach(async child => {
-        await update(ref(db, `guests/${child.key}`), { pressed: false });
-      });
+      const guestsRef = ref(db, 'guests');
+      const guestsSnap = await get(guestsRef);
+      const updates = {};
+      guestsSnap.forEach(child => { updates[child.key + '/pressed'] = false; });
+      await update(guestsRef, updates);
     };
 
     resetBustsBtn.onclick = async () => {
