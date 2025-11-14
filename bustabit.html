@@ -41,6 +41,11 @@
   <!-- Host Screen -->
   <div id="hostScreen" class="hidden">
     <h2>Pull Out Indicator:<span id="majorityLight"></span></h2>
+    <label style="margin-right:10px;">Freeze/Unfreeze:</label>
+    <select id="freezeSwitch" class="btn">
+      <option value="unfreeze" selected>Unfreeze</option>
+      <option value="freeze">Freeze</option>
+    </select>
     <button id="unlockBtn" class="btn">Unlock All Buzzers</button>
     <button id="resetBustsBtn" class="btn">Reset Bust Counters</button>
     <h3>Total Guests: <span id="guestCount">0</span></h3>
@@ -93,6 +98,7 @@
     const removeAllBtn = document.getElementById('removeAllBtn');
     const resetBustsBtn = document.getElementById('resetBustsBtn');
     const majorityLight = document.getElementById('majorityLight');
+    const freezeSwitch = document.getElementById('freezeSwitch');
 
     let currentGuestKey = null;
 
@@ -121,6 +127,7 @@
 
     buzzer.onclick = async () => {
       if (!currentGuestKey) return;
+      if (freezeSwitch.value === 'freeze') return; // Cannot press when frozen
       const guestRef = ref(db, `guests/${currentGuestKey}`);
       const snap = await get(guestRef);
       const data = snap.val();
@@ -131,6 +138,7 @@
     };
 
     unlockBtn.onclick = async () => {
+      freezeSwitch.value = 'unfreeze'; // Set switch to unfreeze
       const guestsSnap = await get(ref(db, 'guests'));
       guestsSnap.forEach(child => {
         if (child.val().pressed) {
