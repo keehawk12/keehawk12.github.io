@@ -115,6 +115,13 @@
       buzzer.style.backgroundColor = 'red';
     };
 
+    const updateBuzzerColor = async (key) => {
+      if (currentGuestKey === key) {
+        const snap = await get(ref(db, `guests/${key}`));
+        buzzer.style.backgroundColor = snap.val().pressed ? 'green' : 'red';
+      }
+    };
+
     buzzer.onclick = async () => {
       if (!currentGuestKey) return;
       const guestRef = ref(db, `guests/${currentGuestKey}`);
@@ -128,8 +135,9 @@
 
     resetBuzzersBtn.onclick = async () => {
       const guestsSnap = await get(ref(db, 'guests'));
-      guestsSnap.forEach(child => {
-        update(ref(db, `guests/${child.key}`), { pressed: false, locked: false });
+      guestsSnap.forEach(async child => {
+        await update(ref(db, `guests/${child.key}`), { pressed: false, locked: false });
+        await updateBuzzerColor(child.key);
       });
     };
 
@@ -155,6 +163,7 @@
         guestsData.push({ key: child.key, data });
         count++;
         if (data.pressed) pressedCount++;
+        updateBuzzerColor(child.key);
       });
 
       guestsData.sort((a, b) => b.data.busts - a.data.busts);
