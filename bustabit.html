@@ -40,6 +40,7 @@
   <div id="hostScreen" class="hidden">
     <h2>Scoreboard</h2>
     <button id="resetBtn" class="btn">Reset All Buzzers</button>
+    <button id="unlockBtn" class="btn">Unlock All Buzzers</button>
     <h3>Total Guests: <span id="guestCount">0</span></h3>
     <table>
       <thead>
@@ -60,7 +61,7 @@
     const firebaseConfig = {
       apiKey: "AIzaSyAzoxOKLSQHRH0Eo6pC3s9xoPeKklfp4YM",
       authDomain: "bustabit-e3659.firebaseapp.com",
-      databaseURL: "https://bustabit-e3659-default-rtdb.firebaseio.com/",  // <-- FIXED TRAILING SLASH
+      databaseURL: "https://bustabit-e3659-default-rtdb.firebaseio.com/",
       projectId: "bustabit-e3659",
       storageBucket: "bustabit-e3659.appspot.com",
       messagingSenderId: "892180950202",
@@ -84,6 +85,7 @@
     const scoreboardBody = document.getElementById('scoreboardBody');
     const guestCount = document.getElementById('guestCount');
     const resetBtn = document.getElementById('resetBtn');
+    const unlockBtn = document.getElementById('unlockBtn');
 
     let currentGuestKey = null;
 
@@ -101,7 +103,7 @@
       const name = guestNameInput.value.trim();
       if (!name) return;
 
-      const newEntry = await push(ref(db, 'guests'), { name, pressed: false });
+      const newEntry = await push(ref(db, 'guests'), { name, pressed: false, locked: false });
       currentGuestKey = newEntry.key;
 
       guestNameScreen.classList.add('hidden');
@@ -111,17 +113,28 @@
 
     buzzer.onclick = async () => {
       if (!currentGuestKey) return;
-      const pressedRef = ref(db, `guests/${currentGuestKey}/pressed`);
-      const snap = await get(pressedRef);
-      const newState = !snap.val();
-      await update(ref(db, `guests/${currentGuestKey}`), { pressed: newState });
-      buzzer.style.backgroundColor = newState ? 'green' : 'red';
+      const guestRef = ref(db, `guests/${currentGuestKey}`);
+      const snap = await get(guestRef);
+      const data = snap.val();
+      if (!data.locked && !data.pressed) {
+        await update(guestRef, { pressed: true, locked: true });
+        buzzer.style.backgroundColor = 'green';
+      }
     };
 
     resetBtn.onclick = async () => {
       const guestsSnap = await get(ref(db, 'guests'));
       guestsSnap.forEach(child => {
-        update(ref(db, `guests/${child.key}`), { pressed: false });
+        update(ref(db, `guests/${child.key}`), { pressed: false, locked: false });
+      });
+    };
+
+    unlockBtn.onclick = async () => {
+      const guestsSnap = await get(ref(db, 'guests'));
+      guestsSnap.forEach(child => {
+        if (child.val().pressed) {
+          update(ref(db, `guests/${child.key}`), { locked: false });
+        }
       });
     };
 
