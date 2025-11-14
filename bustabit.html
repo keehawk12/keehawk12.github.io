@@ -7,9 +7,9 @@
   <style>
     body { font-family: Arial, sans-serif; text-align: center; padding-top: 40px; }
     .hidden { display: none; }
-    .btn { padding: 15px 30px; font-size: 20px; cursor: pointer; border-radius: 8px; border: none; margin: 10px; }
+    .btn { padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 8px; border: none; margin: 5px; }
     #buzzer { width: 200px; height: 200px; border-radius: 50%; background-color: red; margin: 40px auto; cursor: pointer; transition: background-color 0.2s ease; }
-    table { margin: 0 auto; border-collapse: collapse; width: 60%; }
+    table { margin: 0 auto; border-collapse: collapse; width: 70%; }
     th, td { padding: 12px; border: 1px solid #555; font-size: 18px; }
     th { background: #eee; }
     #majorityLight { width: 50px; height: 50px; border-radius: 50%; display: inline-block; background-color: red; margin-left: 10px; vertical-align: middle; }
@@ -42,17 +42,20 @@
   <div id="hostScreen" class="hidden">
     <h2>Scoreboard <span id="majorityLabel">Pull Out Indicator:</span> <span id="majorityLight"></span></h2>
     <button id="unlockBtn" class="btn">Unlock All Buzzers</button>
-    <button id="removeAllBtn" class="btn">Remove All Guests</button>
+    <button id="resetBustsBtn" class="btn">Reset Bust Counters</button>
     <h3>Total Guests: <span id="guestCount">0</span></h3>
     <table>
       <thead>
         <tr>
           <th>Hoe</th>
           <th>Pressed?</th>
+          <th>Busts</th>
         </tr>
       </thead>
       <tbody id="scoreboardBody"></tbody>
     </table>
+    <br/>
+    <button id="removeAllBtn" class="btn">Remove All Guests</button>
   </div>
 
   <!-- Firebase modular SDK -->
@@ -88,6 +91,7 @@
     const guestCount = document.getElementById('guestCount');
     const unlockBtn = document.getElementById('unlockBtn');
     const removeAllBtn = document.getElementById('removeAllBtn');
+    const resetBustsBtn = document.getElementById('resetBustsBtn');
     const majorityLight = document.getElementById('majorityLight');
 
     let currentGuestKey = null;
@@ -106,7 +110,7 @@
       const name = guestNameInput.value.trim();
       if (!name) return;
 
-      const newEntry = await push(ref(db, 'guests'), { name, pressed: false, locked: false });
+      const newEntry = await push(ref(db, 'guests'), { name, pressed: false, locked: false, busts: 0 });
       currentGuestKey = newEntry.key;
 
       guestNameScreen.classList.add('hidden');
@@ -120,7 +124,6 @@
       const guestRef = ref(db, `guests/${currentGuestKey}`);
       const snap = await get(guestRef);
       const data = snap.val();
-      // Guest can only press when buzzer is red (not pressed)
       if (!data.pressed && !data.locked) {
         await update(guestRef, { pressed: true, locked: true });
         buzzer.style.backgroundColor = 'green';
@@ -136,6 +139,13 @@
       });
     };
 
+    resetBustsBtn.onclick = async () => {
+      const guestsSnap = await get(ref(db, 'guests'));
+      guestsSnap.forEach(child => {
+        update(ref(db, `guests/${child.key}`), { busts: 0 });
+      });
+    };
+
     removeAllBtn.onclick = async () => {
       await remove(ref(db, 'guests'));
     };
@@ -144,23 +154,46 @@
       scoreboardBody.innerHTML = '';
       let count = 0;
       let pressedCount = 0;
+      let guestsData = [];
+
       snapshot.forEach(child => {
         const data = child.val();
-        const row = document.createElement('tr');
-        row.innerHTML = `<td>${data.name}</td><td>${data.pressed ? 'Yes' : 'No'}</td>`;
-        scoreboardBody.appendChild(row);
+        guestsData.push({ key: child.key, data });
         count++;
         if (data.pressed) pressedCount++;
       });
+
+      // Sort by busts descending
+      guestsData.sort((a, b) => b.data.busts - a.data.busts);
+
+      guestsData.forEach(item => {
+        const data = item.data;
+        const row = document.createElement('tr');
+        row.innerHTML = `<td>${data.name}</td><td>${data.pressed ? 'Yes' : 'No'}</td>
+          <td>
+            <button class='btn' onclick='adjustBust("${item.key}", -1)'>-</button>
+            <span id='bust-${item.key}'>${data.busts}</span>
+            <button class='btn' onclick='adjustBust("${item.key}", 1)'>+</button>
+          </td>`;
+        scoreboardBody.appendChild(row);
+      });
+
       guestCount.textContent = count;
 
-      // Update majority light: green if over half pressed
       if (count > 0 && pressedCount / count > 0.5) {
         majorityLight.style.backgroundColor = 'green';
       } else {
         majorityLight.style.backgroundColor = 'red';
       }
     });
+
+    window.adjustBust = async (key, delta) => {
+      const guestRef = ref(db, `guests/${key}`);
+      const snap = await get(guestRef);
+      const current = snap.val().busts || 0;
+      const newCount = Math.max(0, current + delta);
+      await update(guestRef, { busts: newCount });
+    };
   </script>
 </body>
 </html>
