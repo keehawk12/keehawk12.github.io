@@ -41,6 +41,7 @@
   <div id="hostScreen" class="hidden">
     <h2>Scoreboard <span id="majorityLight"></span></h2>
     <button id="unlockBtn" class="btn">Unlock All Buzzers</button>
+    <button id="removeAllBtn" class="btn">Remove All Guests</button>
     <h3>Total Guests: <span id="guestCount">0</span></h3>
     <table>
       <thead>
@@ -56,7 +57,7 @@
   <!-- Firebase modular SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-app.js";
-    import { getDatabase, ref, push, update, onValue, get } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-database.js";
+    import { getDatabase, ref, push, update, onValue, get, remove } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAzoxOKLSQHRH0Eo6pC3s9xoPeKklfp4YM",
@@ -85,6 +86,7 @@
     const scoreboardBody = document.getElementById('scoreboardBody');
     const guestCount = document.getElementById('guestCount');
     const unlockBtn = document.getElementById('unlockBtn');
+    const removeAllBtn = document.getElementById('removeAllBtn');
     const majorityLight = document.getElementById('majorityLight');
 
     let currentGuestKey = null;
@@ -129,6 +131,10 @@
           update(ref(db, `guests/${child.key}`), { locked: false, pressed: false });
         }
       });
+    };
+
+    removeAllBtn.onclick = async () => {
+      await remove(ref(db, 'guests'));
     };
 
     onValue(ref(db, 'guests'), snapshot => {
