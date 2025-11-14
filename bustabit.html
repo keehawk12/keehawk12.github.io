@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bustabit Buzzer</title>
+  <title>Hoes et al. Bustabit</title>
   <style>
     body { font-family: Arial, sans-serif; text-align: center; padding-top: 40px; }
     .hidden { display: none; }
@@ -14,6 +14,12 @@
     th { background: #eee; }
     #majorityLight { width: 50px; height: 50px; border-radius: 50%; display: inline-block; background-color: red; margin-left: 10px; vertical-align: middle; }
     #majorityLabel { font-size: 18px; font-weight: bold; vertical-align: middle; }
+    .switch { position: relative; display: inline-block; width: 60px; height: 34px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+    .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+    input:checked + .slider { background-color: #2196F3; }
+    input:checked + .slider:before { transform: translateX(26px); }
   </style>
 </head>
 <body>
@@ -42,10 +48,10 @@
   <div id="hostScreen" class="hidden">
     <h2>Pull Out Indicator:<span id="majorityLight"></span></h2>
     <label style="margin-right:10px;">Freeze/Unfreeze:</label>
-    <select id="freezeSwitch" class="btn">
-      <option value="unfreeze" selected>Unfreeze</option>
-      <option value="freeze">Freeze</option>
-    </select>
+    <label class="switch">
+      <input type="checkbox" id="freezeSwitch">
+      <span class="slider"></span>
+    </label>
     <button id="unlockBtn" class="btn">Unlock All Buzzers</button>
     <button id="resetBustsBtn" class="btn">Reset Bust Counters</button>
     <h3>Total Guests: <span id="guestCount">0</span></h3>
@@ -63,7 +69,6 @@
     <button id="removeAllBtn" class="btn">Remove All Guests</button>
   </div>
 
-  <!-- Firebase modular SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-app.js";
     import { getDatabase, ref, push, update, onValue, get, remove } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-database.js";
@@ -115,10 +120,8 @@
     submitNameBtn.onclick = async () => {
       const name = guestNameInput.value.trim();
       if (!name) return;
-
       const newEntry = await push(ref(db, 'guests'), { name, pressed: false, locked: false, busts: 0 });
       currentGuestKey = newEntry.key;
-
       guestNameScreen.classList.add('hidden');
       buzzerScreen.classList.remove('hidden');
       welcomeText.textContent = `Press the buzzer to pull out!`;
@@ -127,7 +130,7 @@
 
     buzzer.onclick = async () => {
       if (!currentGuestKey) return;
-      if (freezeSwitch.value === 'freeze') return; // Cannot press when frozen
+      if (freezeSwitch.checked) return; // Cannot press when frozen
       const guestRef = ref(db, `guests/${currentGuestKey}`);
       const snap = await get(guestRef);
       const data = snap.val();
@@ -138,7 +141,7 @@
     };
 
     unlockBtn.onclick = async () => {
-      freezeSwitch.value = 'unfreeze'; // Set switch to unfreeze
+      freezeSwitch.checked = false; // Unfreeze
       const guestsSnap = await get(ref(db, 'guests'));
       guestsSnap.forEach(child => {
         if (child.val().pressed) {
@@ -186,12 +189,7 @@
       });
 
       guestCount.textContent = count;
-
-      if (count > 0 && pressedCount / count > 0.5) {
-        majorityLight.style.backgroundColor = 'green';
-      } else {
-        majorityLight.style.backgroundColor = 'red';
-      }
+      majorityLight.style.backgroundColor = (count > 0 && pressedCount / count >= 0.5) ? 'green' : 'red';
     });
 
     window.adjustBust = async (key, delta) => {
