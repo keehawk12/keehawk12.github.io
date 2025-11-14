@@ -12,7 +12,8 @@
     table { margin: 0 auto; border-collapse: collapse; width: 60%; }
     th, td { padding: 12px; border: 1px solid #555; font-size: 18px; }
     th { background: #eee; }
-    #majorityLight { width: 30px; height: 30px; border-radius: 50%; display: inline-block; background-color: red; margin-left: 10px; }
+    #majorityLight { width: 50px; height: 50px; border-radius: 50%; display: inline-block; background-color: red; margin-left: 10px; vertical-align: middle; }
+    #majorityLabel { font-size: 18px; font-weight: bold; vertical-align: middle; }
   </style>
 </head>
 <body>
@@ -39,14 +40,14 @@
 
   <!-- Host Screen -->
   <div id="hostScreen" class="hidden">
-    <h2>Scoreboard <span id="majorityLight"></span></h2>
+    <h2>Scoreboard <span id="majorityLabel">Pull Out Indicator:</span> <span id="majorityLight"></span></h2>
     <button id="unlockBtn" class="btn">Unlock All Buzzers</button>
     <button id="removeAllBtn" class="btn">Remove All Guests</button>
     <h3>Total Guests: <span id="guestCount">0</span></h3>
     <table>
       <thead>
         <tr>
-          <th>Name</th>
+          <th>Hoe</th>
           <th>Pressed?</th>
         </tr>
       </thead>
@@ -110,7 +111,7 @@
 
       guestNameScreen.classList.add('hidden');
       buzzerScreen.classList.remove('hidden');
-      welcomeText.textContent = `Hello, ${name}!`;
+      welcomeText.textContent = `Press the buzzer to pull out!`;
       buzzer.style.backgroundColor = 'red';
     };
 
