@@ -9,10 +9,14 @@
     .hidden { display: none; }
     .btn { padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 8px; border: none; margin: 5px; }
     #buzzer { width: 200px; height: 200px; border-radius: 50%; background-color: red; margin: 40px auto; cursor: pointer; transition: background-color 0.2s ease; }
-    table { margin: 0 auto; border-collapse: collapse; width: 70%; }
-    th, td { padding: 12px; border: 1px solid #555; font-size: 18px; }
+    table { margin: 0 auto; border-collapse: collapse; border: 1px solid #555; }
+    th, td { padding: 8px; border: 1px solid #555; font-size: 16px; text-align: center; }
     th { background: #eee; }
     #majorityLight { width: 50px; height: 50px; border-radius: 50%; display: inline-block; background-color: red; margin-left: 10px; vertical-align: middle; }
+    #financeTable { position: absolute; top: 50px; right: 10px; border-collapse: collapse; }
+    #financeTable input { width: 80px; }
+    #btcPriceContainer { position: absolute; top: 10px; left: 10px; font-size: 16px; }
+    #btcPriceInput { width: 100px; margin-left: 5px; }
   </style>
 </head>
 <body>
@@ -20,7 +24,7 @@
   <div id="home">
     <h1>The Hoes et al. Play Bustabit and Lose Everything</h1>
     <button id="guestBtn" class="btn">Hoe</button>
-    <button id="hostBtn" class="btn">Ben</button>
+    <button id="hostBtn" class="btn">Host</button>
   </div>
 
   <!-- Guest Name Entry -->
@@ -39,6 +43,35 @@
 
   <!-- Host Screen -->
   <div id="hostScreen" class="hidden">
+    <!-- BTC Price Input -->
+    <div id="btcPriceContainer">BTC Price: <input type="number" id="btcPriceInput" value="30000" /></div>
+
+    <!-- Finance Table -->
+    <table id="financeTable">
+      <thead>
+        <tr>
+          <th></th>
+          <th>Initial</th>
+          <th>Current</th>
+          <th>Net</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>Bits</th>
+          <td contenteditable id="initialBits">0</td>
+          <td contenteditable id="currentBits">0</td>
+          <td id="netBits">0</td>
+        </tr>
+        <tr>
+          <th>$</th>
+          <td id="initialUSD">0</td>
+          <td id="currentUSD">0</td>
+          <td id="netUSD">0</td>
+        </tr>
+      </tbody>
+    </table>
+
     <h2>Pull Out Indicator:<span id="majorityLight"></span></h2>
     <button id="resetBuzzersBtn" class="btn">Reset All Buzzers</button>
     <button id="resetBustsBtn" class="btn">Reset Bust Counters</button>
@@ -92,7 +125,34 @@
     const resetBustsBtn = document.getElementById('resetBustsBtn');
     const majorityLight = document.getElementById('majorityLight');
 
+    const initialBitsInput = document.getElementById('initialBits');
+    const currentBitsInput = document.getElementById('currentBits');
+    const netBitsDisplay = document.getElementById('netBits');
+    const initialUSDDisplay = document.getElementById('initialUSD');
+    const currentUSDDisplay = document.getElementById('currentUSD');
+    const netUSDDisplay = document.getElementById('netUSD');
+    const btcPriceInput = document.getElementById('btcPriceInput');
+
     let currentGuestKey = null;
+
+    const updateFinance = () => {
+      const initialBits = parseFloat(initialBitsInput.textContent) || 0;
+      const currentBits = parseFloat(currentBitsInput.textContent) || 0;
+      const netBits = currentBits - initialBits;
+      netBitsDisplay.textContent = netBits.toFixed(2);
+
+      const btcPrice = parseFloat(btcPriceInput.value) || 30000;
+      const initialUSD = initialBits * btcPrice / 1e6;
+      const currentUSD = currentBits * btcPrice / 1e6;
+      const netUSD = currentUSD - initialUSD;
+      initialUSDDisplay.textContent = initialUSD.toFixed(2);
+      currentUSDDisplay.textContent = currentUSD.toFixed(2);
+      netUSDDisplay.textContent = netUSD.toFixed(2);
+    };
+
+    [initialBitsInput, currentBitsInput, btcPriceInput].forEach(el => {
+      el.addEventListener('input', updateFinance);
+    });
 
     guestBtn.onclick = () => {
       home.classList.add('hidden');
@@ -102,6 +162,7 @@
     hostBtn.onclick = () => {
       home.classList.add('hidden');
       hostScreen.classList.remove('hidden');
+      updateFinance();
     };
 
     submitNameBtn.onclick = async () => {
