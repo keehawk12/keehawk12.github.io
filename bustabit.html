@@ -13,13 +13,6 @@
     th, td { padding: 12px; border: 1px solid #555; font-size: 18px; }
     th { background: #eee; }
     #majorityLight { width: 50px; height: 50px; border-radius: 50%; display: inline-block; background-color: red; margin-left: 10px; vertical-align: middle; }
-    #majorityLabel { font-size: 18px; font-weight: bold; vertical-align: middle; }
-    .switch { position: relative; display: inline-block; width: 60px; height: 34px; }
-    .switch input { opacity: 0; width: 0; height: 0; }
-    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
-    .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
-    input:checked + .slider { background-color: #2196F3; }
-    input:checked + .slider:before { transform: translateX(26px); }
   </style>
 </head>
 <body>
@@ -47,12 +40,7 @@
   <!-- Host Screen -->
   <div id="hostScreen" class="hidden">
     <h2>Pull Out Indicator:<span id="majorityLight"></span></h2>
-    <label style="margin-right:10px;">Freeze/Unfreeze:</label>
-    <label class="switch">
-      <input type="checkbox" id="freezeSwitch">
-      <span class="slider"></span>
-    </label>
-    <button id="unlockBtn" class="btn">Unlock All Buzzers</button>
+    <button id="resetBuzzersBtn" class="btn">Reset All Buzzers</button>
     <button id="resetBustsBtn" class="btn">Reset Bust Counters</button>
     <h3>Total Guests: <span id="guestCount">0</span></h3>
     <table>
@@ -99,11 +87,10 @@
     const hostScreen = document.getElementById('hostScreen');
     const scoreboardBody = document.getElementById('scoreboardBody');
     const guestCount = document.getElementById('guestCount');
-    const unlockBtn = document.getElementById('unlockBtn');
+    const resetBuzzersBtn = document.getElementById('resetBuzzersBtn');
     const removeAllBtn = document.getElementById('removeAllBtn');
     const resetBustsBtn = document.getElementById('resetBustsBtn');
     const majorityLight = document.getElementById('majorityLight');
-    const freezeSwitch = document.getElementById('freezeSwitch');
 
     let currentGuestKey = null;
 
@@ -130,23 +117,19 @@
 
     buzzer.onclick = async () => {
       if (!currentGuestKey) return;
-      if (freezeSwitch.checked) return; // Cannot press when frozen
       const guestRef = ref(db, `guests/${currentGuestKey}`);
       const snap = await get(guestRef);
       const data = snap.val();
-      if (!data.pressed && !data.locked) {
+      if (!data.pressed) {
         await update(guestRef, { pressed: true, locked: true });
         buzzer.style.backgroundColor = 'green';
       }
     };
 
-    unlockBtn.onclick = async () => {
-      freezeSwitch.checked = false; // Unfreeze
+    resetBuzzersBtn.onclick = async () => {
       const guestsSnap = await get(ref(db, 'guests'));
       guestsSnap.forEach(child => {
-        if (child.val().pressed) {
-          update(ref(db, `guests/${child.key}`), { locked: false, pressed: false });
-        }
+        update(ref(db, `guests/${child.key}`), { pressed: false, locked: false });
       });
     };
 
