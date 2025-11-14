@@ -111,6 +111,7 @@
       guestNameScreen.classList.add('hidden');
       buzzerScreen.classList.remove('hidden');
       welcomeText.textContent = `Hello, ${name}!`;
+      buzzer.style.backgroundColor = 'red';
     };
 
     buzzer.onclick = async () => {
@@ -118,7 +119,8 @@
       const guestRef = ref(db, `guests/${currentGuestKey}`);
       const snap = await get(guestRef);
       const data = snap.val();
-      if (!data.locked && !data.pressed) {
+      // Guest can only press when buzzer is red (not pressed)
+      if (!data.pressed && !data.locked) {
         await update(guestRef, { pressed: true, locked: true });
         buzzer.style.backgroundColor = 'green';
       }
