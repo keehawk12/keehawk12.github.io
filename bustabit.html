@@ -5,38 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Bustabit Buzzer</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding-top: 60px;
-    }
-    .hidden {
-      display: none;
-    }
-    .btn {
-      padding: 15px 30px;
-      font-size: 20px;
-      cursor: pointer;
-      border-radius: 8px;
-      border: none;
-    }
-    #buzzer {
-      width: 200px;
-      height: 200px;
-      border-radius: 50%;
-      background-color: red;
-      margin: 40px auto;
-      cursor: pointer;
-      transition: background-color 0.2s ease;
-    }
+    body { font-family: Arial, sans-serif; text-align: center; padding-top: 40px; }
+    .hidden { display: none; }
+    .btn { padding: 15px 30px; font-size: 20px; cursor: pointer; border-radius: 8px; border: none; margin: 10px; }
+    #buzzer { width: 200px; height: 200px; border-radius: 50%; background-color: red; margin: 40px auto; cursor: pointer; transition: background-color 0.2s ease; }
+    table { margin: 0 auto; border-collapse: collapse; width: 60%; }
+    th, td { padding: 12px; border: 1px solid #555; font-size: 18px; }
+    th { background: #eee; }
   </style>
 </head>
 <body>
   <!-- Home Screen -->
   <div id="home">
-    <h1>Welcome</h1>
-    <button id="guestBtn" class="btn">Guest</button>
-    <button id="hostBtn" class="btn">Host</button>
+    <h1>Hoes et al. Play Bustabit</h1>
+    <button id="guestBtn" class="btn">Hoe</button>
+    <button id="hostBtn" class="btn">Ben</button>
   </div>
 
   <!-- Guest Name Entry -->
@@ -53,37 +36,107 @@
     <div id="buzzer"></div>
   </div>
 
-  <script>
+  <!-- Host Screen -->
+  <div id="hostScreen" class="hidden">
+    <h2>Scoreboard</h2>
+    <button id="resetBtn" class="btn">Reset All Buzzers</button>
+    <h3>Total Guests: <span id="guestCount">0</span></h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Pressed?</th>
+        </tr>
+      </thead>
+      <tbody id="scoreboardBody"></tbody>
+    </table>
+  </div>
+
+  <!-- Firebase modular SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-app.js";
+    import { getDatabase, ref, push, update, onValue, get } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAzoxOKLSQHRH0Eo6pC3s9xoPeKklfp4YM",
+      authDomain: "bustabit-e3659.firebaseapp.com",
+      databaseURL: "https://bustabit-e3659-default-rtdb.firebaseio.com/",  // <-- FIXED TRAILING SLASH
+      projectId: "bustabit-e3659",
+      storageBucket: "bustabit-e3659.appspot.com",
+      messagingSenderId: "892180950202",
+      appId: "1:892180950202:web:90e44a5ac82bb11761a683",
+      measurementId: "G-65669MB3K7"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
     const home = document.getElementById('home');
     const guestBtn = document.getElementById('guestBtn');
+    const hostBtn = document.getElementById('hostBtn');
     const guestNameScreen = document.getElementById('guestNameScreen');
     const submitNameBtn = document.getElementById('submitNameBtn');
     const guestNameInput = document.getElementById('guestNameInput');
     const buzzerScreen = document.getElementById('buzzerScreen');
     const welcomeText = document.getElementById('welcomeText');
     const buzzer = document.getElementById('buzzer');
+    const hostScreen = document.getElementById('hostScreen');
+    const scoreboardBody = document.getElementById('scoreboardBody');
+    const guestCount = document.getElementById('guestCount');
+    const resetBtn = document.getElementById('resetBtn');
+
+    let currentGuestKey = null;
 
     guestBtn.onclick = () => {
       home.classList.add('hidden');
       guestNameScreen.classList.remove('hidden');
     };
 
-    submitNameBtn.onclick = () => {
+    hostBtn.onclick = () => {
+      home.classList.add('hidden');
+      hostScreen.classList.remove('hidden');
+    };
+
+    submitNameBtn.onclick = async () => {
       const name = guestNameInput.value.trim();
       if (!name) return;
+
+      const newEntry = await push(ref(db, 'guests'), { name, pressed: false });
+      currentGuestKey = newEntry.key;
 
       guestNameScreen.classList.add('hidden');
       buzzerScreen.classList.remove('hidden');
       welcomeText.textContent = `Hello, ${name}!`;
     };
 
-    buzzer.onclick = () => {
-      if (buzzer.style.backgroundColor === 'green') {
-        buzzer.style.backgroundColor = 'red';
-      } else {
-        buzzer.style.backgroundColor = 'green';
-      }
+    buzzer.onclick = async () => {
+      if (!currentGuestKey) return;
+      const pressedRef = ref(db, `guests/${currentGuestKey}/pressed`);
+      const snap = await get(pressedRef);
+      const newState = !snap.val();
+      await update(ref(db, `guests/${currentGuestKey}`), { pressed: newState });
+      buzzer.style.backgroundColor = newState ? 'green' : 'red';
     };
+
+    resetBtn.onclick = async () => {
+      const guestsSnap = await get(ref(db, 'guests'));
+      guestsSnap.forEach(child => {
+        update(ref(db, `guests/${child.key}`), { pressed: false });
+      });
+    };
+
+    onValue(ref(db, 'guests'), snapshot => {
+      scoreboardBody.innerHTML = '';
+      let count = 0;
+      snapshot.forEach(child => {
+        const data = child.val();
+        const row = document.createElement('tr');
+        row.innerHTML = `<td>${data.name}</td><td>${data.pressed ? 'Yes' : 'No'}</td>`;
+        scoreboardBody.appendChild(row);
+        count++;
+      });
+      guestCount.textContent = count;
+    });
   </script>
 </body>
 </html>
