@@ -12,6 +12,7 @@
     table { margin: 0 auto; border-collapse: collapse; width: 60%; }
     th, td { padding: 12px; border: 1px solid #555; font-size: 18px; }
     th { background: #eee; }
+    #majorityLight { width: 30px; height: 30px; border-radius: 50%; display: inline-block; background-color: red; margin-left: 10px; }
   </style>
 </head>
 <body>
@@ -38,8 +39,7 @@
 
   <!-- Host Screen -->
   <div id="hostScreen" class="hidden">
-    <h2>Scoreboard</h2>
-    <button id="resetBtn" class="btn">Reset All Buzzers</button>
+    <h2>Scoreboard <span id="majorityLight"></span></h2>
     <button id="unlockBtn" class="btn">Unlock All Buzzers</button>
     <h3>Total Guests: <span id="guestCount">0</span></h3>
     <table>
@@ -84,8 +84,8 @@
     const hostScreen = document.getElementById('hostScreen');
     const scoreboardBody = document.getElementById('scoreboardBody');
     const guestCount = document.getElementById('guestCount');
-    const resetBtn = document.getElementById('resetBtn');
     const unlockBtn = document.getElementById('unlockBtn');
+    const majorityLight = document.getElementById('majorityLight');
 
     let currentGuestKey = null;
 
@@ -122,18 +122,11 @@
       }
     };
 
-    resetBtn.onclick = async () => {
-      const guestsSnap = await get(ref(db, 'guests'));
-      guestsSnap.forEach(child => {
-        update(ref(db, `guests/${child.key}`), { pressed: false, locked: false });
-      });
-    };
-
     unlockBtn.onclick = async () => {
       const guestsSnap = await get(ref(db, 'guests'));
       guestsSnap.forEach(child => {
         if (child.val().pressed) {
-          update(ref(db, `guests/${child.key}`), { locked: false });
+          update(ref(db, `guests/${child.key}`), { locked: false, pressed: false });
         }
       });
     };
@@ -141,14 +134,23 @@
     onValue(ref(db, 'guests'), snapshot => {
       scoreboardBody.innerHTML = '';
       let count = 0;
+      let pressedCount = 0;
       snapshot.forEach(child => {
         const data = child.val();
         const row = document.createElement('tr');
         row.innerHTML = `<td>${data.name}</td><td>${data.pressed ? 'Yes' : 'No'}</td>`;
         scoreboardBody.appendChild(row);
         count++;
+        if (data.pressed) pressedCount++;
       });
       guestCount.textContent = count;
+
+      // Update majority light: green if over half pressed
+      if (count > 0 && pressedCount / count > 0.5) {
+        majorityLight.style.backgroundColor = 'green';
+      } else {
+        majorityLight.style.backgroundColor = 'red';
+      }
     });
   </script>
 </body>
