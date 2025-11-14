@@ -24,7 +24,7 @@
     #financeTable { position: absolute; top: 50px; right: 10px; border-collapse: collapse; }
     #financeTable input { width: 80px; }
     #btcPriceContainer { position: absolute; top: 10px; left: 10px; font-size: 16px; }
-    #btcPriceInput { width: 100px; margin-left: 5px; }
+    #btcPriceContainer input { width: 100px; margin-left: 5px; }
 
     /* Bottom image moves with scroll, slightly bigger */
     #bottomImage {
@@ -60,8 +60,11 @@
 
   <!-- Host Screen -->
   <div id="hostScreen" class="hidden">
-    <!-- BTC Price Input -->
-    <div id="btcPriceContainer">BTC Price: <input type="number" id="btcPriceInput" value="30000" /></div>
+    <!-- BTC Price Inputs -->
+    <div id="btcPriceContainer">
+      Initial BTC Price: <input type="number" id="initialBtcPriceInput" value="100000" />
+      Current BTC Price: <input type="number" id="currentBtcPriceInput" value="100000" />
+    </div>
 
     <!-- Finance Table -->
     <table id="financeTable">
@@ -152,39 +155,31 @@
     const initialUSDDisplay = document.getElementById('initialUSD');
     const currentUSDDisplay = document.getElementById('currentUSD');
     const netUSDDisplay = document.getElementById('netUSD');
-    const btcPriceInput = document.getElementById('btcPriceInput');
+
+    const initialBtcPriceInput = document.getElementById('initialBtcPriceInput');
+    const currentBtcPriceInput = document.getElementById('currentBtcPriceInput');
 
     let currentGuestKey = null;
 
     const updateFinance = () => {
       const initialBits = parseFloat(initialBitsInput.textContent) || 0;
       const currentBits = parseFloat(currentBitsInput.textContent) || 0;
-      const netBits = currentBits - initialBits;
-      netBitsDisplay.textContent = netBits.toFixed(2);
+      netBitsDisplay.textContent = (currentBits - initialBits).toFixed(2);
 
-      const btcPrice = parseFloat(btcPriceInput.value) || 30000;
-      const initialUSD = initialBits * btcPrice / 1e6;
-      const currentUSD = currentBits * btcPrice / 1e6;
-      const netUSD = currentUSD - initialUSD;
-      initialUSDDisplay.textContent = initialUSD.toFixed(2);
-      currentUSDDisplay.textContent = currentUSD.toFixed(2);
-      netUSDDisplay.textContent = netUSD.toFixed(2);
+      const initialPrice = parseFloat(initialBtcPriceInput.value) || 30000;
+      const currentPrice = parseFloat(currentBtcPriceInput.value) || 30000;
+
+      initialUSDDisplay.textContent = (initialBits * initialPrice / 1e6).toFixed(2);
+      currentUSDDisplay.textContent = (currentBits * currentPrice / 1e6).toFixed(2);
+      netUSDDisplay.textContent = ((currentBits * currentPrice - initialBits * initialPrice)/1).toFixed(2);
     };
 
-    [initialBitsInput, currentBitsInput, btcPriceInput].forEach(el => {
+    [initialBitsInput, currentBitsInput, initialBtcPriceInput, currentBtcPriceInput].forEach(el => {
       el.addEventListener('input', updateFinance);
     });
 
-    guestBtn.onclick = () => {
-      home.classList.add('hidden');
-      guestNameScreen.classList.remove('hidden');
-    };
-
-    hostBtn.onclick = () => {
-      home.classList.add('hidden');
-      hostScreen.classList.remove('hidden');
-      updateFinance();
-    };
+    guestBtn.onclick = () => { home.classList.add('hidden'); guestNameScreen.classList.remove('hidden'); };
+    hostBtn.onclick = () => { home.classList.add('hidden'); hostScreen.classList.remove('hidden'); updateFinance(); };
 
     submitNameBtn.onclick = async () => {
       const name = guestNameInput.value.trim();
@@ -225,14 +220,10 @@
 
     resetBustsBtn.onclick = async () => {
       const guestsSnap = await get(ref(db, 'guests'));
-      guestsSnap.forEach(child => {
-        update(ref(db, `guests/${child.key}`), { busts: 0 });
-      });
+      guestsSnap.forEach(child => { update(ref(db, `guests/${child.key}`), { busts: 0 }); });
     };
 
-    removeAllBtn.onclick = async () => {
-      await remove(ref(db, 'guests'));
-    };
+    removeAllBtn.onclick = async () => { await remove(ref(db, 'guests')); };
 
     onValue(ref(db, 'guests'), snapshot => {
       scoreboardBody.innerHTML = '';
@@ -243,9 +234,7 @@
       snapshot.forEach(child => {
         const data = child.val();
         guestsData.push({ key: child.key, data });
-        count++;
-        if (data.pressed) pressedCount++;
-        updateBuzzerColor(child.key);
+        count++; if (data.pressed) pressedCount++; updateBuzzerColor(child.key);
       });
 
       guestsData.sort((a, b) => b.data.busts - a.data.busts);
@@ -275,9 +264,7 @@
       await update(guestRef, { busts: newCount });
     };
 
-    window.removeGuest = async (key) => {
-      await remove(ref(db, `guests/${key}`));
-    };
+    window.removeGuest = async (key) => { await remove(ref(db, `guests/${key}`)); };
   </script>
 </body>
 </html>
