@@ -242,6 +242,8 @@
       guestsData.forEach(item => {
         const data = item.data;
         const row = document.createElement('tr');
+        row.style.backgroundColor = data.pressed ? 'lightgreen' : 'lightcoral';
+        row.id = `row-${item.key}`;
         row.innerHTML = `<td>${data.name}</td><td>${data.pressed ? 'Yes' : 'No'}</td>
           <td>
             <button class='btn' onclick='adjustBust("${item.key}", -1)'>-</button>
