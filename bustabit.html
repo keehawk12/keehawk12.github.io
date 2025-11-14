@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bustabit Buzzer</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding-top: 60px;
+    }
+    .hidden {
+      display: none;
+    }
+    .btn {
+      padding: 15px 30px;
+      font-size: 20px;
+      cursor: pointer;
+      border-radius: 8px;
+      border: none;
+    }
+    #buzzer {
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      background-color: red;
+      margin: 40px auto;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+  </style>
+</head>
+<body>
+  <!-- Home Screen -->
+  <div id="home">
+    <h1>Welcome</h1>
+    <button id="guestBtn" class="btn">Guest</button>
+    <button id="hostBtn" class="btn">Host</button>
+  </div>
+
+  <!-- Guest Name Entry -->
+  <div id="guestNameScreen" class="hidden">
+    <h2>Enter Your Name</h2>
+    <input type="text" id="guestNameInput" placeholder="Your name" />
+    <br/><br/>
+    <button id="submitNameBtn" class="btn">Submit</button>
+  </div>
+
+  <!-- Buzzer Screen -->
+  <div id="buzzerScreen" class="hidden">
+    <h2 id="welcomeText"></h2>
+    <div id="buzzer"></div>
+  </div>
+
+  <script>
+    const home = document.getElementById('home');
+    const guestBtn = document.getElementById('guestBtn');
+    const guestNameScreen = document.getElementById('guestNameScreen');
+    const submitNameBtn = document.getElementById('submitNameBtn');
+    const guestNameInput = document.getElementById('guestNameInput');
+    const buzzerScreen = document.getElementById('buzzerScreen');
+    const welcomeText = document.getElementById('welcomeText');
+    const buzzer = document.getElementById('buzzer');
+
+    guestBtn.onclick = () => {
+      home.classList.add('hidden');
+      guestNameScreen.classList.remove('hidden');
+    };
+
+    submitNameBtn.onclick = () => {
+      const name = guestNameInput.value.trim();
+      if (!name) return;
+
+      guestNameScreen.classList.add('hidden');
+      buzzerScreen.classList.remove('hidden');
+      welcomeText.textContent = `Hello, ${name}!`;
+    };
+
+    buzzer.onclick = () => {
+      if (buzzer.style.backgroundColor === 'green') {
+        buzzer.style.backgroundColor = 'red';
+      } else {
+        buzzer.style.backgroundColor = 'green';
+      }
+    };
+  </script>
+</body>
+</html>
