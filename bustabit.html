@@ -41,6 +41,7 @@
   <!-- Host Screen -->
   <div id="hostScreen" class="hidden">
     <h2>Pull Out Indicator:<span id="majorityLight"></span></h2>
+    <button id="lockAllBtn" class="btn">Lock All Buzzers</button>
     <button id="unlockBtn" class="btn">Unlock All Buzzers</button>
     <button id="resetBustsBtn" class="btn">Reset Bust Counters</button>
     <h3>Total Guests: <span id="guestCount">0</span></h3>
@@ -89,6 +90,7 @@
     const hostScreen = document.getElementById('hostScreen');
     const scoreboardBody = document.getElementById('scoreboardBody');
     const guestCount = document.getElementById('guestCount');
+    const lockAllBtn = document.getElementById('lockAllBtn');
     const unlockBtn = document.getElementById('unlockBtn');
     const removeAllBtn = document.getElementById('removeAllBtn');
     const resetBustsBtn = document.getElementById('resetBustsBtn');
@@ -128,6 +130,13 @@
         await update(guestRef, { pressed: true, locked: true });
         buzzer.style.backgroundColor = 'green';
       }
+    };
+
+    lockAllBtn.onclick = async () => {
+      const guestsSnap = await get(ref(db, 'guests'));
+      guestsSnap.forEach(child => {
+        update(ref(db, `guests/${child.key}`), { locked: true });
+      });
     };
 
     unlockBtn.onclick = async () => {
