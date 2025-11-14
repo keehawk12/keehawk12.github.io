@@ -171,7 +171,7 @@
 
       initialUSDDisplay.textContent = (initialBits * initialPrice / 1e6).toFixed(2);
       currentUSDDisplay.textContent = (currentBits * currentPrice / 1e6).toFixed(2);
-      netUSDDisplay.textContent = ((currentBits * currentPrice - initialBits * initialPrice)/1).toFixed(2);
+      netUSDDisplay.textContent = ((currentBits * currentPrice / 1e6) - (initialBits * initialPrice / 1e6)).toFixed(2);
     };
 
     [initialBitsInput, currentBitsInput, initialBtcPriceInput, currentBtcPriceInput].forEach(el => {
