@@ -22,7 +22,7 @@
 <body>
   <!-- Home Screen -->
   <div id="home">
-    <h1>Hoes et al. Play Bustabit and Lose Everything</h1>
+    <h1>The Hoes et al. Play Bustabit and Lose Everything</h1>
     <button id="guestBtn" class="btn">Hoe</button>
     <button id="hostBtn" class="btn">Host</button>
   </div>
@@ -82,6 +82,7 @@
           <th>Hoe</th>
           <th>Pressed?</th>
           <th>Busts</th>
+          <th>Remove</th>
         </tr>
       </thead>
       <tbody id="scoreboardBody"></tbody>
@@ -237,7 +238,8 @@
             <button class='btn' onclick='adjustBust("${item.key}", -1)'>-</button>
             <span id='bust-${item.key}'>${data.busts}</span>
             <button class='btn' onclick='adjustBust("${item.key}", 1)'>+</button>
-          </td>`;
+          </td>
+          <td><button class='btn' onclick='removeGuest("${item.key}")'>Remove</button></td>`;
         scoreboardBody.appendChild(row);
       });
 
@@ -251,6 +253,10 @@
       const current = snap.val().busts || 0;
       const newCount = Math.max(0, current + delta);
       await update(guestRef, { busts: newCount });
+    };
+
+    window.removeGuest = async (key) => {
+      await remove(ref(db, `guests/${key}`));
     };
   </script>
 </body>
