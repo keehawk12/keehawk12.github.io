@@ -11,20 +11,7 @@
       padding-top: 40px;
       margin: 0;
       min-height: 100vh;
-      background: url('gambling.webp') no-repeat center center fixed;
-      background-size: cover;
       position: relative;
-    }
-
-    body::after {
-      content: "";
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(255, 255, 255, 0.5); /* 50% faded overlay */
-      z-index: -1;
     }
 
     .hidden { display: none; }
@@ -38,6 +25,17 @@
     #financeTable input { width: 80px; }
     #btcPriceContainer { position: absolute; top: 10px; left: 10px; font-size: 16px; }
     #btcPriceInput { width: 100px; margin-left: 5px; }
+
+    /* Image at the bottom of every page */
+    #bottomImage {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      max-width: 100%;
+      height: auto;
+      z-index: -1;
+    }
   </style>
 </head>
 <body>
@@ -103,7 +101,7 @@
           <th>Hoe</th>
           <th>Pressed?</th>
           <th>Busts</th>
-          <th>Remove</th>
+          <th>         </th>
         </tr>
       </thead>
       <tbody id="scoreboardBody"></tbody>
@@ -111,6 +109,9 @@
     <br/>
     <button id="removeAllBtn" class="btn">Remove All Guests</button>
   </div>
+
+  <!-- Bottom Image -->
+  <img id="bottomImage" src="gambling.webp" alt="Gambling Image" />
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-app.js";
