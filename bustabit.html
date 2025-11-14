@@ -26,7 +26,6 @@
     #btcPriceContainer { position: absolute; top: 10px; left: 10px; font-size: 16px; display: flex; flex-direction: column; align-items: flex-start; }
     #btcPriceContainer input { width: 100px; margin: 2px 0; }
 
-    /* Bottom image moves with scroll, slightly bigger */
     #bottomImage {
       display: block;
       margin: 40px auto 0 auto;
@@ -37,14 +36,12 @@
   </style>
 </head>
 <body>
-  <!-- Home Screen -->
   <div id="home">
     <h1>Hoes et al. Play Bustabit and Lose Everything</h1>
     <button id="guestBtn" class="btn">Hoe</button>
     <button id="hostBtn" class="btn">Host</button>
   </div>
 
-  <!-- Guest Name Entry -->
   <div id="guestNameScreen" class="hidden">
     <h2>Enter Your Name</h2>
     <input type="text" id="guestNameInput" placeholder="Your name" />
@@ -52,43 +49,24 @@
     <button id="submitNameBtn" class="btn">Submit</button>
   </div>
 
-  <!-- Buzzer Screen -->
   <div id="buzzerScreen" class="hidden">
     <h2 id="welcomeText"></h2>
     <div id="buzzer"></div>
   </div>
 
-  <!-- Host Screen -->
   <div id="hostScreen" class="hidden">
-    <!-- BTC Price Inputs -->
     <div id="btcPriceContainer">
       Initial BTC Price: <input type="number" id="initialBtcPriceInput" value="100000" />
       Current BTC Price: <input type="number" id="currentBtcPriceInput" value="100000" />
     </div>
 
-    <!-- Finance Table -->
     <table id="financeTable">
       <thead>
-        <tr>
-          <th></th>
-          <th>Initial</th>
-          <th>Current</th>
-          <th>Net</th>
-        </tr>
+        <tr><th></th><th>Initial</th><th>Current</th><th>Net</th></tr>
       </thead>
       <tbody>
-        <tr>
-          <th>Bits</th>
-          <td contenteditable id="initialBits">0</td>
-          <td contenteditable id="currentBits">0</td>
-          <td id="netBits">0</td>
-        </tr>
-        <tr>
-          <th>$</th>
-          <td id="initialUSD">0</td>
-          <td id="currentUSD">0</td>
-          <td id="netUSD">0</td>
-        </tr>
+        <tr><th>Bits</th><td contenteditable id="initialBits">0</td><td contenteditable id="currentBits">0</td><td id="netBits">0</td></tr>
+        <tr><th>$</th><td id="initialUSD">0</td><td id="currentUSD">0</td><td id="netUSD">0</td></tr>
       </tbody>
     </table>
 
@@ -98,12 +76,7 @@
     <h3>Total Guests: <span id="guestCount">0</span></h3>
     <table>
       <thead>
-        <tr>
-          <th>Hoe</th>
-          <th>Pull Out?</th>
-          <th>Busts</th>
-          <th>         </th>
-        </tr>
+        <tr><th>Hoe</th><th>Pull Out?</th><th>Busts</th><th></th></tr>
       </thead>
       <tbody id="scoreboardBody"></tbody>
     </table>
@@ -111,7 +84,6 @@
     <button id="removeAllBtn" class="btn">Remove All Guests</button>
   </div>
 
-  <!-- Bottom Image -->
   <img id="bottomImage" src="gambling.webp" alt="Gambling Image" />
 
   <script type="module">
@@ -174,9 +146,7 @@
       netUSDDisplay.textContent = ((currentBits * currentPrice / 1e6) - (initialBits * initialPrice / 1e6)).toFixed(2);
     };
 
-    [initialBitsInput, currentBitsInput, initialBtcPriceInput, currentBtcPriceInput].forEach(el => {
-      el.addEventListener('input', updateFinance);
-    });
+    [initialBitsInput, currentBitsInput, initialBtcPriceInput, currentBtcPriceInput].forEach(el => { el.addEventListener('input', updateFinance); });
 
     guestBtn.onclick = () => { home.classList.add('hidden'); guestNameScreen.classList.remove('hidden'); };
     hostBtn.onclick = () => { home.classList.add('hidden'); hostScreen.classList.remove('hidden'); updateFinance(); };
@@ -205,7 +175,7 @@
       const snap = await get(guestRef);
       const data = snap.val();
       if (!data.pressed) {
-        await update(guestRef, { pressed: true, locked: true });
+        await update(guestRef, { pressed: true });
         buzzer.style.backgroundColor = 'green';
       }
     };
@@ -213,8 +183,7 @@
     resetBuzzersBtn.onclick = async () => {
       const guestsSnap = await get(ref(db, 'guests'));
       guestsSnap.forEach(async child => {
-        await update(ref(db, `guests/${child.key}`), { pressed: false, locked: false });
-        await updateBuzzerColor(child.key);
+        await update(ref(db, `guests/${child.key}`), { pressed: false });
       });
     };
 
