@@ -143,7 +143,7 @@
       netUSDDisplay.textContent = ((currentBits * currentPrice / 1e6) - (initialBits * currentPrice / 1e6)).toFixed(2);
     };
 
-    [initialBitsInput, currentBitsInput, currentBtcPriceInput, currentBtcPriceInput].forEach(el => { el.addEventListener('input', updateFinance); });
+    [initialBitsInput, currentBitsInput, currentBtcPriceInput].forEach(el => { el.addEventListener('input', updateFinance); });
 
     guestBtn.onclick = () => { home.classList.add('hidden'); guestNameScreen.classList.remove('hidden'); };
     hostBtn.onclick = () => { home.classList.add('hidden'); hostScreen.classList.remove('hidden'); updateFinance(); };
@@ -196,7 +196,7 @@
       scoreboardBody.innerHTML = '';
       let count = 0;
       let pressedCount = 0;
-      let guestsData = [];
+      const guestsData = [];
 
       snapshot.forEach(child => {
         const data = child.val();
@@ -204,26 +204,31 @@
         count++; if (data.pressed) pressedCount++; updateBuzzerColor(child.key);
       });
 
-      guestsData.sort((a, b) => b.data.busts - a.data.busts);
+      guestsData.sort((a, b) => (b.data.busts || 0) - (a.data.busts || 0));
 
       guestsData.forEach(item => {
         const data = item.data;
         const row = document.createElement('tr');
         row.style.backgroundColor = data.pressed ? 'lightgreen' : 'lightcoral';
         row.id = `row-${item.key}`;
-        row.innerHTML = `<td>${data.name}</td><td>${data.pressed ? 'Yes' : 'No'}</td>
+        const busts = data.busts || 0;
+        const cashes = data.cashes || 0;
+        row.innerHTML = `
+          <td>${data.name}</td>
+          <td>${data.pressed ? 'Yes' : 'No'}</td>
           <td>
             <button class='btn' onclick='adjustBust("${item.key}", -1)'>-</button>
-            <span id='bust-${item.key}'>${data.busts}</span>
+            <span id='bust-${item.key}'>${busts}</span>
             <button class='btn' onclick='adjustBust("${item.key}", 1)'>+</button>
           </td>
           <td>
             <button class='btn' onclick='adjustCash("${item.key}", -1)'>-</button>
-            <span id='bust-${item.key}'>${data.cashes}</span>
+            <span id='cash-${item.key}'>${cashes}</span>
             <button class='btn' onclick='adjustCash("${item.key}", 1)'>+</button>
           </td>
-          <td>${data.cashes} - ${data.busts}</td>
-          <td><button class='btn' onclick='removeGuest("${item.key}")'>Remove</button></td>`;
+          <td>${cashes - busts}</td>
+          <td><button class='btn' onclick='removeGuest("${item.key}")'>Remove</button></td>
+        `;
         scoreboardBody.appendChild(row);
       });
 
