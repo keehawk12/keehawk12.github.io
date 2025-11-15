@@ -151,7 +151,7 @@
     submitNameBtn.onclick = async () => {
       const name = guestNameInput.value.trim();
       if (!name) return;
-      const newEntry = await push(ref(db, 'guests'), { name, pressed: false, busts: 0 });
+      const newEntry = await push(ref(db, 'guests'), { name, pressed: false, busts: 0, cashes: 0 });
       currentGuestKey = newEntry.key;
       guestNameScreen.classList.add('hidden');
       buzzerScreen.classList.remove('hidden');
