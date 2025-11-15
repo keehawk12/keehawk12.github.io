@@ -132,7 +132,7 @@
     const currentBtcPriceInput = document.getElementById('currentBtcPriceInput');
 
     let currentGuestKey = null;
-    let sortByScore = false;
+    let sortOrder = [];
 
     const updateFinance = () => {
       const initialBits = parseFloat(initialBitsInput.textContent) || 0;
@@ -186,21 +186,32 @@
       const updates = {};
       guestsSnap.forEach(child => { updates[child.key + '/pressed'] = false; });
       await update(guestsRef, updates);
-      sortByScore = true;
+
+      // Capture sort order by score at this point
+      sortOrder = [];
+      guestsSnap.forEach(child => {
+        const data = child.val();
+        sortOrder.push({ key: child.key, score: (data.cashes || 0) - (data.busts || 0) });
+      });
+      // Sort descending by score
+      sortOrder.sort((a, b) => b.score - a.score);
+
       renderScoreboard();
     };
 
     resetBustsBtn.onclick = async () => {
       const guestsSnap = await get(ref(db, 'guests'));
       guestsSnap.forEach(child => { update(ref(db, `guests/${child.key}`), { busts: 0 }); });
+      renderScoreboard();
     };
 
     resetCashesBtn.onclick = async () => {
       const guestsSnap = await get(ref(db, 'guests'));
       guestsSnap.forEach(child => { update(ref(db, `guests/${child.key}`), { cashes: 0 }); });
+      renderScoreboard();
     };
 
-    removeAllBtn.onclick = async () => { await remove(ref(db, 'guests')); };
+    removeAllBtn.onclick = async () => { await remove(ref(db, 'guests')); renderScoreboard(); };
 
     const renderScoreboard = () => {
       const scoreboardSnapshot = ref(db, 'guests');
@@ -208,40 +219,40 @@
         scoreboardBody.innerHTML = '';
         let count = 0;
         let pressedCount = 0;
-        const guestsData = [];
+        const guestsData = {};
 
         snapshot.forEach(child => {
           const data = child.val();
-          guestsData.push({ key: child.key, data });
+          guestsData[child.key] = data;
           count++; if (data.pressed) pressedCount++; updateBuzzerColor(child.key);
         });
 
-        if(sortByScore) {
-          guestsData.sort((a,b) => ((b.data.cashes || 0) - (b.data.busts || 0)) - ((a.data.cashes || 0) - (a.data.busts || 0)));
-        }
+        // Render according to sortOrder if set
+        const renderKeys = sortOrder.length ? sortOrder.map(x => x.key) : Object.keys(guestsData);
 
-        guestsData.forEach(item => {
-          const data = item.data;
+        renderKeys.forEach(key => {
+          const data = guestsData[key];
+          if (!data) return;
           const row = document.createElement('tr');
           row.style.backgroundColor = data.pressed ? 'lightgreen' : 'lightcoral';
-          row.id = `row-${item.key}`;
+          row.id = `row-${key}`;
           const busts = data.busts || 0;
           const cashes = data.cashes || 0;
           row.innerHTML = `
             <td>${data.name}</td>
             <td>${data.pressed ? 'Yes' : 'No'}</td>
             <td>
-              <button class='btn' onclick='adjustBust("${item.key}", -1)'>-</button>
-              <span id='bust-${item.key}'>${busts}</span>
-              <button class='btn' onclick='adjustBust("${item.key}", 1)'>+</button>
+              <button class='btn' onclick='adjustBust("${key}", -1)'>-</button>
+              <span id='bust-${key}'>${busts}</span>
+              <button class='btn' onclick='adjustBust("${key}", 1)'>+</button>
             </td>
             <td>
-              <button class='btn' onclick='adjustCash("${item.key}", -1)'>-</button>
-              <span id='cash-${item.key}'>${cashes}</span>
-              <button class='btn' onclick='adjustCash("${item.key}", 1)'>+</button>
+              <button class='btn' onclick='adjustCash("${key}", -1)'>-</button>
+              <span id='cash-${key}'>${cashes}</span>
+              <button class='btn' onclick='adjustCash("${key}", 1)'>+</button>
             </td>
             <td>${cashes - busts}</td>
-            <td><button class='btn' onclick='removeGuest("${item.key}")'>Remove</button></td>
+            <td><button class='btn' onclick='removeGuest("${key}")'>Remove</button></td>
           `;
           scoreboardBody.appendChild(row);
         });
@@ -271,7 +282,7 @@
       renderScoreboard();
     };
 
-    window.removeGuest = async (key) => { await remove(ref(db, 'guests')); };
+    window.removeGuest = async (key) => { await remove(ref(db, `guests/${key}`)); renderScoreboard(); };
   </script>
 </body>
 </html>
