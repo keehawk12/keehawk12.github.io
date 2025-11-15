@@ -132,6 +132,7 @@
     const currentBtcPriceInput = document.getElementById('currentBtcPriceInput');
 
     let currentGuestKey = null;
+    let sortByScore = false;
 
     const updateFinance = () => {
       const initialBits = parseFloat(initialBitsInput.textContent) || 0;
@@ -185,7 +186,8 @@
       const updates = {};
       guestsSnap.forEach(child => { updates[child.key + '/pressed'] = false; });
       await update(guestsRef, updates);
-      renderScoreboard(true); // Sort by score when reset buzzers is clicked
+      sortByScore = true;
+      renderScoreboard();
     };
 
     resetBustsBtn.onclick = async () => {
@@ -200,7 +202,7 @@
 
     removeAllBtn.onclick = async () => { await remove(ref(db, 'guests')); };
 
-    const renderScoreboard = (sortByScore = false) => {
+    const renderScoreboard = () => {
       const scoreboardSnapshot = ref(db, 'guests');
       get(scoreboardSnapshot).then(snapshot => {
         scoreboardBody.innerHTML = '';
@@ -249,7 +251,7 @@
       });
     };
 
-    onValue(ref(db, 'guests'), () => renderScoreboard(false));
+    onValue(ref(db, 'guests'), () => renderScoreboard());
 
     window.adjustBust = async (key, delta) => {
       const guestRef = ref(db, `guests/${key}`);
@@ -257,7 +259,7 @@
       const current = snap.val().busts || 0;
       const newCount = Math.max(0, current + delta);
       await update(guestRef, { busts: newCount });
-      renderScoreboard(false);
+      renderScoreboard();
     };
 
     window.adjustCash = async (key, delta) => {
@@ -266,10 +268,10 @@
       const current = snap.val().cashes || 0;
       const newCount = Math.max(0, current + delta);
       await update(guestRef, { cashes: newCount });
-      renderScoreboard(false);
+      renderScoreboard();
     };
 
-    window.removeGuest = async (key) => { await remove(ref(db, `guests/${key}`)); };
+    window.removeGuest = async (key) => { await remove(ref(db, 'guests')); };
   </script>
 </body>
 </html>
