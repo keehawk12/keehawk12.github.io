@@ -56,7 +56,6 @@
 
   <div id="hostScreen" class="hidden">
     <div id="btcPriceContainer">
-      Initial BTC Price: <input type="number" id="initialBtcPriceInput" value="100000" />
       Current BTC Price: <input type="number" id="currentBtcPriceInput" value="100000" />
     </div>
 
@@ -76,7 +75,7 @@
     <h3>Total Guests: <span id="guestCount">0</span></h3>
     <table>
       <thead>
-        <tr><th>Hoe</th><th>Pull Out?</th><th>Busts</th><th></th></tr>
+        <tr><th>Hoe</th><th>Pull Out?</th><th>Cashes</th><th>Score</th><th>Busts</th><th></th></tr>
       </thead>
       <tbody id="scoreboardBody"></tbody>
     </table>
@@ -128,7 +127,6 @@
     const currentUSDDisplay = document.getElementById('currentUSD');
     const netUSDDisplay = document.getElementById('netUSD');
 
-    const initialBtcPriceInput = document.getElementById('initialBtcPriceInput');
     const currentBtcPriceInput = document.getElementById('currentBtcPriceInput');
 
     let currentGuestKey = null;
@@ -138,15 +136,14 @@
       const currentBits = parseFloat(currentBitsInput.textContent) || 0;
       netBitsDisplay.textContent = (currentBits - initialBits).toFixed(2);
 
-      const initialPrice = parseFloat(initialBtcPriceInput.value) || 30000;
       const currentPrice = parseFloat(currentBtcPriceInput.value) || 30000;
 
-      initialUSDDisplay.textContent = (initialBits * initialPrice / 1e6).toFixed(2);
+      initialUSDDisplay.textContent = (initialBits * currentPrice / 1e6).toFixed(2);
       currentUSDDisplay.textContent = (currentBits * currentPrice / 1e6).toFixed(2);
-      netUSDDisplay.textContent = ((currentBits * currentPrice / 1e6) - (initialBits * initialPrice / 1e6)).toFixed(2);
+      netUSDDisplay.textContent = (((currentBits - initialBits) * currentPrice) / 1e6).toFixed(2);
     };
 
-    [initialBitsInput, currentBitsInput, initialBtcPriceInput, currentBtcPriceInput].forEach(el => { el.addEventListener('input', updateFinance); });
+    [initialBitsInput, currentBitsInput, currentBtcPriceInput].forEach(el => { el.addEventListener('input', updateFinance); });
 
     guestBtn.onclick = () => { home.classList.add('hidden'); guestNameScreen.classList.remove('hidden'); };
     hostBtn.onclick = () => { home.classList.add('hidden'); hostScreen.classList.remove('hidden'); updateFinance(); };
@@ -154,7 +151,7 @@
     submitNameBtn.onclick = async () => {
       const name = guestNameInput.value.trim();
       if (!name) return;
-      const newEntry = await push(ref(db, 'guests'), { name, pressed: false, busts: 0 });
+      const newEntry = await push(ref(db, 'guests'), { name, pressed: false, busts: 0, cashes: 0 });
       currentGuestKey = newEntry.key;
       guestNameScreen.classList.add('hidden');
       buzzerScreen.classList.remove('hidden');
@@ -186,6 +183,10 @@
       const updates = {};
       guestsSnap.forEach(child => { updates[child.key + '/pressed'] = false; });
       await update(guestsRef, updates);
+      window.sortNow = true;
+    };
+      guestsSnap.forEach(child => { updates[child.key + '/pressed'] = false; });
+      await update(guestsRef, updates);
     };
 
     resetBustsBtn.onclick = async () => {
@@ -207,14 +208,25 @@
         count++; if (data.pressed) pressedCount++; updateBuzzerColor(child.key);
       });
 
-      guestsData.sort((a, b) => b.data.busts - a.data.busts);
+      if (window.sortNow) {
+        guestsData.sort((a, b) => (((b.data.cashes || 0) - (b.data.busts || 0)) - ((a.data.cashes || 0) - (a.data.busts || 0))));
+        window.sortNow = false;
+      }
 
       guestsData.forEach(item => {
         const data = item.data;
         const row = document.createElement('tr');
         row.style.backgroundColor = data.pressed ? 'lightgreen' : 'lightcoral';
         row.id = `row-${item.key}`;
-        row.innerHTML = `<td>${data.name}</td><td>${data.pressed ? 'Yes' : 'No'}</td>
+        row.innerHTML = `
+          <td>${data.name}</td>
+          <td>${data.pressed ? 'Yes' : 'No'}</td>
+          <td>
+            <button class='btn' onclick='adjustCashes("${item.key}", -1)'>-</button>
+            <span id='cashes-${item.key}'>${data.cashes || 0}</span>
+            <button class='btn' onclick='adjustCashes("${item.key}", 1)'>+</button>
+          </td>
+          <td id='score-${item.key}'>${(data.cashes || 0) - (data.busts || 0)}</td>
           <td>
             <button class='btn' onclick='adjustBust("${item.key}", -1)'>-</button>
             <span id='bust-${item.key}'>${data.busts}</span>
@@ -234,6 +246,14 @@
       const current = snap.val().busts || 0;
       const newCount = Math.max(0, current + delta);
       await update(guestRef, { busts: newCount });
+    };
+
+    window.adjustCashes = async (key, delta) => {
+      const guestRef = ref(db, `guests/${key}`);
+      const snap = await get(guestRef);
+      const current = snap.val().cashes || 0;
+      const newCount = Math.max(0, current + delta);
+      await update(guestRef, { cashes: newCount });
     };
 
     window.removeGuest = async (key) => { await remove(ref(db, `guests/${key}`)); };
