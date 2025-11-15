@@ -222,6 +222,7 @@
             <span id='bust-${item.key}'>${data.cashes}</span>
             <button class='btn' onclick='adjustCash("${item.key}", 1)'>+</button>
           </td>
+          <td>${data.cashes} - ${data.busts}</td>
           <td><button class='btn' onclick='removeGuest("${item.key}")'>Remove</button></td>`;
         scoreboardBody.appendChild(row);
       });
