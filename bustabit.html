@@ -217,6 +217,11 @@
             <span id='bust-${item.key}'>${data.busts}</span>
             <button class='btn' onclick='adjustBust("${item.key}", 1)'>+</button>
           </td>
+          <td>
+            <button class='btn' onclick='adjustCash("${item.key}", -1)'>-</button>
+            <span id='bust-${item.key}'>${data.cashes}</span>
+            <button class='btn' onclick='adjustCash("${item.key}", 1)'>+</button>
+          </td>
           <td><button class='btn' onclick='removeGuest("${item.key}")'>Remove</button></td>`;
         scoreboardBody.appendChild(row);
       });
@@ -231,6 +236,14 @@
       const current = snap.val().busts || 0;
       const newCount = Math.max(0, current + delta);
       await update(guestRef, { busts: newCount });
+    };
+
+    window.adjustCash = async (key, delta) => {
+      const guestRef = ref(db, `guests/${key}`);
+      const snap = await get(guestRef);
+      const current = snap.val().cashes || 0;
+      const newCount = Math.max(0, current + delta);
+      await update(guestRef, { cashes: newCount });
     };
 
     window.removeGuest = async (key) => { await remove(ref(db, `guests/${key}`)); };
