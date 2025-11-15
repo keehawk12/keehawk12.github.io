@@ -185,6 +185,7 @@
       const updates = {};
       guestsSnap.forEach(child => { updates[child.key + '/pressed'] = false; });
       await update(guestsRef, updates);
+      renderScoreboard(true); // Sort by score when reset buzzers is clicked
     };
 
     resetBustsBtn.onclick = async () => {
@@ -199,49 +200,56 @@
 
     removeAllBtn.onclick = async () => { await remove(ref(db, 'guests')); };
 
-    onValue(ref(db, 'guests'), snapshot => {
-      scoreboardBody.innerHTML = '';
-      let count = 0;
-      let pressedCount = 0;
-      const guestsData = [];
+    const renderScoreboard = (sortByScore = false) => {
+      const scoreboardSnapshot = ref(db, 'guests');
+      get(scoreboardSnapshot).then(snapshot => {
+        scoreboardBody.innerHTML = '';
+        let count = 0;
+        let pressedCount = 0;
+        const guestsData = [];
 
-      snapshot.forEach(child => {
-        const data = child.val();
-        guestsData.push({ key: child.key, data });
-        count++; if (data.pressed) pressedCount++; updateBuzzerColor(child.key);
+        snapshot.forEach(child => {
+          const data = child.val();
+          guestsData.push({ key: child.key, data });
+          count++; if (data.pressed) pressedCount++; updateBuzzerColor(child.key);
+        });
+
+        if(sortByScore) {
+          guestsData.sort((a,b) => ((b.data.cashes || 0) - (b.data.busts || 0)) - ((a.data.cashes || 0) - (a.data.busts || 0)));
+        }
+
+        guestsData.forEach(item => {
+          const data = item.data;
+          const row = document.createElement('tr');
+          row.style.backgroundColor = data.pressed ? 'lightgreen' : 'lightcoral';
+          row.id = `row-${item.key}`;
+          const busts = data.busts || 0;
+          const cashes = data.cashes || 0;
+          row.innerHTML = `
+            <td>${data.name}</td>
+            <td>${data.pressed ? 'Yes' : 'No'}</td>
+            <td>
+              <button class='btn' onclick='adjustBust("${item.key}", -1)'>-</button>
+              <span id='bust-${item.key}'>${busts}</span>
+              <button class='btn' onclick='adjustBust("${item.key}", 1)'>+</button>
+            </td>
+            <td>
+              <button class='btn' onclick='adjustCash("${item.key}", -1)'>-</button>
+              <span id='cash-${item.key}'>${cashes}</span>
+              <button class='btn' onclick='adjustCash("${item.key}", 1)'>+</button>
+            </td>
+            <td>${cashes - busts}</td>
+            <td><button class='btn' onclick='removeGuest("${item.key}")'>Remove</button></td>
+          `;
+          scoreboardBody.appendChild(row);
+        });
+
+        guestCount.textContent = count;
+        majorityLight.style.backgroundColor = (count > 0 && pressedCount / count >= 0.5) ? 'green' : 'red';
       });
+    };
 
-      guestsData.sort((a, b) => (b.data.busts || 0) - (a.data.busts || 0));
-
-      guestsData.forEach(item => {
-        const data = item.data;
-        const row = document.createElement('tr');
-        row.style.backgroundColor = data.pressed ? 'lightgreen' : 'lightcoral';
-        row.id = `row-${item.key}`;
-        const busts = data.busts || 0;
-        const cashes = data.cashes || 0;
-        row.innerHTML = `
-          <td>${data.name}</td>
-          <td>${data.pressed ? 'Yes' : 'No'}</td>
-          <td>
-            <button class='btn' onclick='adjustBust("${item.key}", -1)'>-</button>
-            <span id='bust-${item.key}'>${busts}</span>
-            <button class='btn' onclick='adjustBust("${item.key}", 1)'>+</button>
-          </td>
-          <td>
-            <button class='btn' onclick='adjustCash("${item.key}", -1)'>-</button>
-            <span id='cash-${item.key}'>${cashes}</span>
-            <button class='btn' onclick='adjustCash("${item.key}", 1)'>+</button>
-          </td>
-          <td>${cashes - busts}</td>
-          <td><button class='btn' onclick='removeGuest("${item.key}")'>Remove</button></td>
-        `;
-        scoreboardBody.appendChild(row);
-      });
-
-      guestCount.textContent = count;
-      majorityLight.style.backgroundColor = (count > 0 && pressedCount / count >= 0.5) ? 'green' : 'red';
-    });
+    onValue(ref(db, 'guests'), () => renderScoreboard(false));
 
     window.adjustBust = async (key, delta) => {
       const guestRef = ref(db, `guests/${key}`);
@@ -249,6 +257,7 @@
       const current = snap.val().busts || 0;
       const newCount = Math.max(0, current + delta);
       await update(guestRef, { busts: newCount });
+      renderScoreboard(false);
     };
 
     window.adjustCash = async (key, delta) => {
@@ -257,6 +266,7 @@
       const current = snap.val().cashes || 0;
       const newCount = Math.max(0, current + delta);
       await update(guestRef, { cashes: newCount });
+      renderScoreboard(false);
     };
 
     window.removeGuest = async (key) => { await remove(ref(db, `guests/${key}`)); };
