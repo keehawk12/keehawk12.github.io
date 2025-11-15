@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Betting Basterds Bustabit</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding-top: 40px;
+      margin: 0;
+      min-height: 100vh;
+      position: relative;
+    }
+
+    .hidden { display: none; }
+    .btn { padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 8px; border: none; margin: 5px; }
+    #buzzer { width: 200px; height: 200px; border-radius: 50%; background-color: red; margin: 40px auto; cursor: pointer; transition: background-color 0.2s ease; }
+    table { margin: 0 auto; border-collapse: collapse; border: 1px solid #555; }
+    th, td { padding: 8px; border: 1px solid #555; font-size: 16px; text-align: center; }
+    th { background: #eee; }
+    #majorityLight { width: 50px; height: 50px; border-radius: 50%; display: inline-block; background-color: red; margin-left: 10px; vertical-align: middle; }
+    #financeTable { position: absolute; top: 50px; right: 10px; border-collapse: collapse; }
+    #financeTable input { width: 80px; }
+    #btcPriceContainer { position: absolute; top: 10px; left: 10px; font-size: 16px; display: flex; flex-direction: column; align-items: flex-start; }
+    #btcPriceContainer input { width: 100px; margin: 2px 0; }
+
+    #bottomImage {
+      display: block;
+      margin: 40px auto 0 auto;
+      max-width: 250px;
+      height: auto;
+      z-index: -1;
+    }
+  </style>
+</head>
+<body>
+  <div id="home">
+    <h1>The Betting Basterds Play Bustabit and Lose Everything</h1>
+    <button id="guestBtn" class="btn">Basterd</button>
+    <button id="hostBtn" class="btn">Host</button>
+  </div>
+
+  <div id="guestNameScreen" class="hidden">
+    <h2>Enter Your Name</h2>
+    <input type="text" id="guestNameInput" placeholder="Your name" />
+    <br/><br/>
+    <button id="submitNameBtn" class="btn">Submit</button>
+  </div>
+
+  <div id="buzzerScreen" class="hidden">
+    <h2 id="welcomeText"></h2>
+    <div id="buzzer"></div>
+  </div>
+
+  <div id="hostScreen" class="hidden">
+    <div id="btcPriceContainer">
+      Current BTC Price: <input type="number" id="currentBtcPriceInput" value="100000" />
+    </div>
+
+    <table id="financeTable">
+      <thead>
+        <tr><th></th><th>Initial</th><th>Current</th><th>Net</th></tr>
+      </thead>
+      <tbody>
+        <tr><th>Bits</th><td contenteditable id="initialBits">0</td><td contenteditable id="currentBits">0</td><td id="netBits">0</td></tr>
+        <tr><th>$</th><td id="initialUSD">0</td><td id="currentUSD">0</td><td id="netUSD">0</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Pull Out Indicator:<span id="majorityLight"></span></h2>
+    <button id="resetBuzzersBtn" class="btn">Reset All Buzzers</button>
+    <button id="resetBustsBtn" class="btn">Reset Bust Counters</button>
+    <button id="resetCashesBtn" class="btn">Reset Cash Counters</button>
+    <h3>Total Guests: <span id="guestCount">0</span></h3>
+    <table>
+      <thead>
+        <tr><th>Basterd</th><th>Pull Out?</th><th>Busts</th><th>Cashes</th><th>Score</th><th></th></tr>
+      </thead>
+      <tbody id="scoreboardBody"></tbody>
+    </table>
+    <br/>
+    <button id="removeAllBtn" class="btn">Remove All Guests</button>
+  </div>
+
+  <img id="bottomImage" src="gambling.webp" alt="Gambling Image" />
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-app.js";
+    import { getDatabase, ref, push, update, onValue, get, remove } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAzoxOKLSQHRH0Eo6pC3s9xoPeKklfp4YM",
+      authDomain: "bustabit-e3659.firebaseapp.com",
+      databaseURL: "https://bustabit-e3659-default-rtdb.firebaseio.com/",
+      projectId: "bustabit-e3659",
+      storageBucket: "bustabit-e3659.appspot.com",
+      messagingSenderId: "892180950202",
+      appId: "1:892180950202:web:90e44a5ac82bb11761a683",
+      measurementId: "G-65669MB3K7"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const home = document.getElementById('home');
+    const guestBtn = document.getElementById('guestBtn');
+    const hostBtn = document.getElementById('hostBtn');
+    const guestNameScreen = document.getElementById('guestNameScreen');
+    const submitNameBtn = document.getElementById('submitNameBtn');
+    const guestNameInput = document.getElementById('guestNameInput');
+    const buzzerScreen = document.getElementById('buzzerScreen');
+    const welcomeText = document.getElementById('welcomeText');
+    const buzzer = document.getElementById('buzzer');
+    const hostScreen = document.getElementById('hostScreen');
+    const scoreboardBody = document.getElementById('scoreboardBody');
+    const guestCount = document.getElementById('guestCount');
+    const resetBuzzersBtn = document.getElementById('resetBuzzersBtn');
+    const removeAllBtn = document.getElementById('removeAllBtn');
+    const resetBustsBtn = document.getElementById('resetBustsBtn');
+    const resetCashesBtn = document.getElementById('resetCashesBtn');
+    const majorityLight = document.getElementById('majorityLight');
+
+    const initialBitsInput = document.getElementById('initialBits');
+    const currentBitsInput = document.getElementById('currentBits');
+    const netBitsDisplay = document.getElementById('netBits');
+    const initialUSDDisplay = document.getElementById('initialUSD');
+    const currentUSDDisplay = document.getElementById('currentUSD');
+    const netUSDDisplay = document.getElementById('netUSD');
+
+    const currentBtcPriceInput = document.getElementById('currentBtcPriceInput');
+
+    let currentGuestKey = null;
+    let sortOrder = [];
+
+    const updateFinance = () => {
+      const initialBits = parseFloat(initialBitsInput.textContent) || 0;
+      const currentBits = parseFloat(currentBitsInput.textContent) || 0;
+      netBitsDisplay.textContent = (currentBits - initialBits).toFixed(2);
+
+      const currentPrice = parseFloat(currentBtcPriceInput.value) || 100000;
+
+      initialUSDDisplay.textContent = (initialBits * currentPrice / 1e6).toFixed(2);
+      currentUSDDisplay.textContent = (currentBits * currentPrice / 1e6).toFixed(2);
+      netUSDDisplay.textContent = ((currentBits * currentPrice / 1e6) - (initialBits * currentPrice / 1e6)).toFixed(2);
+    };
+
+    [initialBitsInput, currentBitsInput, currentBtcPriceInput].forEach(el => { el.addEventListener('input', updateFinance); });
+
+    guestBtn.onclick = () => { home.classList.add('hidden'); guestNameScreen.classList.remove('hidden'); };
+    hostBtn.onclick = () => { home.classList.add('hidden'); hostScreen.classList.remove('hidden'); updateFinance(); };
+
+    submitNameBtn.onclick = async () => {
+      const name = guestNameInput.value.trim();
+      if (!name) return;
+      const newEntry = await push(ref(db, 'guests'), { name, pressed: false, busts: 0, cashes: 0 });
+      currentGuestKey = newEntry.key;
+      guestNameScreen.classList.add('hidden');
+      buzzerScreen.classList.remove('hidden');
+      welcomeText.textContent = `Press the buzzer to pull out!`;
+      buzzer.style.backgroundColor = 'red';
+    };
+
+    const updateBuzzerColor = async (key) => {
+      if (currentGuestKey === key) {
+        const snap = await get(ref(db, `guests/${key}`));
+        buzzer.style.backgroundColor = snap.val().pressed ? 'green' : 'red';
+      }
+    };
+
+    buzzer.onclick = async () => {
+      if (!currentGuestKey) return;
+      const guestRef = ref(db, `guests/${currentGuestKey}`);
+      const snap = await get(guestRef);
+      const data = snap.val();
+      if (!data.pressed) {
+        await update(guestRef, { pressed: true });
+        buzzer.style.backgroundColor = 'green';
+      }
+    };
+
+    resetBuzzersBtn.onclick = async () => {
+      const guestsRef = ref(db, 'guests');
+      const guestsSnap = await get(guestsRef);
+      const updates = {};
+      guestsSnap.forEach(child => { updates[child.key + '/pressed'] = false; });
+      await update(guestsRef, updates);
+
+      // Capture sort order by score at this point
+      sortOrder = [];
+      guestsSnap.forEach(child => {
+        const data = child.val();
+        sortOrder.push({ key: child.key, score: (data.cashes || 0) - (data.busts || 0) });
+      });
+      // Sort descending by score
+      sortOrder.sort((a, b) => b.score - a.score);
+
+      renderScoreboard();
+    };
+
+    resetBustsBtn.onclick = async () => {
+      const guestsSnap = await get(ref(db, 'guests'));
+      guestsSnap.forEach(child => { update(ref(db, `guests/${child.key}`), { busts: 0 }); });
+      renderScoreboard();
+    };
+
+    resetCashesBtn.onclick = async () => {
+      const guestsSnap = await get(ref(db, 'guests'));
+      guestsSnap.forEach(child => { update(ref(db, `guests/${child.key}`), { cashes: 0 }); });
+      renderScoreboard();
+    };
+
+    removeAllBtn.onclick = async () => { await remove(ref(db, 'guests')); renderScoreboard(); };
+
+    const renderScoreboard = () => {
+      const scoreboardSnapshot = ref(db, 'guests');
+      get(scoreboardSnapshot).then(snapshot => {
+        scoreboardBody.innerHTML = '';
+        let count = 0;
+        let pressedCount = 0;
+        const guestsData = {};
+
+        snapshot.forEach(child => {
+          const data = child.val();
+          guestsData[child.key] = data;
+          count++; if (data.pressed) pressedCount++; updateBuzzerColor(child.key);
+        });
+
+        // Render according to sortOrder if set
+        const renderKeys = sortOrder.length ? sortOrder.map(x => x.key) : Object.keys(guestsData);
+
+        renderKeys.forEach(key => {
+          const data = guestsData[key];
+          if (!data) return;
+          const row = document.createElement('tr');
+          row.style.backgroundColor = data.pressed ? 'lightgreen' : 'lightcoral';
+          row.id = `row-${key}`;
+          const busts = data.busts || 0;
+          const cashes = data.cashes || 0;
+          row.innerHTML = `
+            <td>${data.name}</td>
+            <td>${data.pressed ? 'Yes' : 'No'}</td>
+            <td>
+              <button class='btn' onclick='adjustBust("${key}", -1)'>-</button>
+              <span id='bust-${key}'>${busts}</span>
+              <button class='btn' onclick='adjustBust("${key}", 1)'>+</button>
+            </td>
+            <td>
+              <button class='btn' onclick='adjustCash("${key}", -1)'>-</button>
+              <span id='cash-${key}'>${cashes}</span>
+              <button class='btn' onclick='adjustCash("${key}", 1)'>+</button>
+            </td>
+            <td>${cashes - busts}</td>
+            <td><button class='btn' onclick='removeGuest("${key}")'>Remove</button></td>
+          `;
+          scoreboardBody.appendChild(row);
+        });
+
+        guestCount.textContent = count;
+        majorityLight.style.backgroundColor = (count > 0 && pressedCount / count >= 0.5) ? 'green' : 'red';
+      });
+    };
+
+    onValue(ref(db, 'guests'), () => renderScoreboard());
+
+    window.adjustBust = async (key, delta) => {
+      const guestRef = ref(db, `guests/${key}`);
+      const snap = await get(guestRef);
+      const current = snap.val().busts || 0;
+      const newCount = Math.max(0, current + delta);
+      await update(guestRef, { busts: newCount });
+      renderScoreboard();
+    };
+
+    window.adjustCash = async (key, delta) => {
+      const guestRef = ref(db, `guests/${key}`);
+      const snap = await get(guestRef);
+      const current = snap.val().cashes || 0;
+      const newCount = Math.max(0, current + delta);
+      await update(guestRef, { cashes: newCount });
+      renderScoreboard();
+    };
+
+    window.removeGuest = async (key) => { await remove(ref(db, `guests/${key}`)); renderScoreboard(); };
+  </script>
+</body>
+</html>
