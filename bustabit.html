@@ -56,7 +56,6 @@
 
   <div id="hostScreen" class="hidden">
     <div id="btcPriceContainer">
-      Initial BTC Price: <input type="number" id="initialBtcPriceInput" value="100000" />
       Current BTC Price: <input type="number" id="currentBtcPriceInput" value="100000" />
     </div>
 
@@ -128,7 +127,6 @@
     const currentUSDDisplay = document.getElementById('currentUSD');
     const netUSDDisplay = document.getElementById('netUSD');
 
-    const initialBtcPriceInput = document.getElementById('initialBtcPriceInput');
     const currentBtcPriceInput = document.getElementById('currentBtcPriceInput');
 
     let currentGuestKey = null;
@@ -138,15 +136,14 @@
       const currentBits = parseFloat(currentBitsInput.textContent) || 0;
       netBitsDisplay.textContent = (currentBits - initialBits).toFixed(2);
 
-      const initialPrice = parseFloat(initialBtcPriceInput.value) || 30000;
-      const currentPrice = parseFloat(currentBtcPriceInput.value) || 30000;
+      const currentPrice = parseFloat(currentBtcPriceInput.value) || 100000;
 
-      initialUSDDisplay.textContent = (initialBits * initialPrice / 1e6).toFixed(2);
+      initialUSDDisplay.textContent = (initialBits * currentPrice / 1e6).toFixed(2);
       currentUSDDisplay.textContent = (currentBits * currentPrice / 1e6).toFixed(2);
-      netUSDDisplay.textContent = ((currentBits * currentPrice / 1e6) - (initialBits * initialPrice / 1e6)).toFixed(2);
+      netUSDDisplay.textContent = ((currentBits * currentPrice / 1e6) - (initialBits * currentPrice / 1e6)).toFixed(2);
     };
 
-    [initialBitsInput, currentBitsInput, initialBtcPriceInput, currentBtcPriceInput].forEach(el => { el.addEventListener('input', updateFinance); });
+    [initialBitsInput, currentBitsInput, currentBtcPriceInput, currentBtcPriceInput].forEach(el => { el.addEventListener('input', updateFinance); });
 
     guestBtn.onclick = () => { home.classList.add('hidden'); guestNameScreen.classList.remove('hidden'); };
     hostBtn.onclick = () => { home.classList.add('hidden'); hostScreen.classList.remove('hidden'); updateFinance(); };
