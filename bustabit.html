@@ -72,6 +72,7 @@
     <h2>Pull Out Indicator:<span id="majorityLight"></span></h2>
     <button id="resetBuzzersBtn" class="btn">Reset All Buzzers</button>
     <button id="resetBustsBtn" class="btn">Reset Bust Counters</button>
+    <button id="resetCashesBtn" class="btn">Reset Cash Counters</button>
     <h3>Total Guests: <span id="guestCount">0</span></h3>
     <table>
       <thead>
@@ -118,6 +119,7 @@
     const resetBuzzersBtn = document.getElementById('resetBuzzersBtn');
     const removeAllBtn = document.getElementById('removeAllBtn');
     const resetBustsBtn = document.getElementById('resetBustsBtn');
+    const resetCashesBtn = document.getElementById('resetCashesBtn');
     const majorityLight = document.getElementById('majorityLight');
 
     const initialBitsInput = document.getElementById('initialBits');
@@ -188,6 +190,11 @@
     resetBustsBtn.onclick = async () => {
       const guestsSnap = await get(ref(db, 'guests'));
       guestsSnap.forEach(child => { update(ref(db, `guests/${child.key}`), { busts: 0 }); });
+    };
+
+    resetCashesBtn.onclick = async () => {
+      const guestsSnap = await get(ref(db, 'guests'));
+      guestsSnap.forEach(child => { update(ref(db, `guests/${child.key}`), { cashes: 0 }); });
     };
 
     removeAllBtn.onclick = async () => { await remove(ref(db, 'guests')); };
