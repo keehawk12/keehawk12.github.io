@@ -98,15 +98,15 @@
       <tbody>
         <tr>
           <td>Rounds/game</td>
-          <td contenteditable id="roundsPerGame"></td>
+          <td contenteditable id="roundsPerGame">10</td>
         </tr>
         <tr>
           <td>Win Min Bound</td>
-          <td contenteditable id="winMinBound"></td>
+          <td contenteditable id="winMinBound">1</td>
         </tr>
         <tr>
           <td>Win Max Bound</td>
-          <td contenteditable id="winMaxBound"></td>
+          <td contenteditable id="winMaxBound">100</td>
         </tr>
       </tbody>
     </table>
@@ -506,7 +506,8 @@
         const betDisplay = document.createElement('div');
 
         betBtn.onclick = () => {
-          betDisplay.textContent = generateRandomBet();
+          const value = generateRandomBet();
+          betDisplay.textContent = value;
         };
 
         container.appendChild(nameEl);
