@@ -522,6 +522,15 @@
       renderWinnerCircle();
     });
 
+    const generateRandomBet = () => {
+      const min = parseFloat(winMinBoundInput.textContent) || 1;
+      const max = parseFloat(winMaxBoundInput.textContent) || 100;
+
+      if (max <= min) return min;
+
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    };
+
     window.removeGuest = async (key) => { await remove(ref(db, `guests/${key}`)); renderScoreboard(); };
   </script>
 </body>
