@@ -35,26 +35,21 @@
     }
 
     #winnerCircleContainer {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      width: 220px;
+      margin-top: 40px; 
       text-align: center;
-      z-index: 1000;
     }
 
     #winnerCircle {
-      width: 200px;
-      height: 200px;
-      border-radius: 50%;
-      background: gold;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      margin: 20px auto; 
+      width: 250px; 
+      height: 250px; 
+      border-radius: 50%; 
+      background: gold; 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center; 
       font-weight: bold;
-      overflow-y: auto;
-      padding: 10px;
     }
   </style>
 </head>
@@ -71,13 +66,11 @@
     <input type="text" id="guestNameInput" placeholder="Your name" />
     <br/><br/>
     <button id="submitNameBtn" class="btn">Submit</button>
-    <img id="bottomImage" src="gambling.webp" alt="Gambling Image" />
   </div>
 
   <div id="buzzerScreen" class="hidden">
     <h2 id="welcomeText"></h2>
     <div id="buzzer"></div>
-    <img id="bottomImage" src="gambling.webp" alt="Gambling Image" />
   </div>
 
   <div id="hostScreen" class="hidden">
@@ -142,10 +135,10 @@
     <button id="resetGameBtn" class="btn">Reset Game</button>
     <button id="removeAllBtn" class="btn">Remove All Guests</button>
 
-      <div id="winnerCircleContainer">
-        <h2>Winner's Circle</h2>
-        <div id="winnerCircle"></div>
-      </div>
+    <div id="winnerCircleContainer">
+      <h2>Winner's Circle</h2>
+      <div id="winnerCircle"></div>
+    </div>
   </div>
 
   <script type="module">
