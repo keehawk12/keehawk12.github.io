@@ -26,12 +26,22 @@
     #btcPriceContainer { position: absolute; top: 10px; left: 10px; font-size: 16px; display: flex; flex-direction: column; align-items: flex-start; }
     #btcPriceContainer input { width: 100px; margin: 2px 0; }
 
-    #bottomImage {
-      display: block;
-      margin: 40px auto 0 auto;
-      max-width: 250px;
-      height: auto;
-      z-index: -1;
+    #winnerCircleContainer {
+      margin-top: 40px;
+      text-align: center;
+    }
+
+    #winnerCircle {
+      margin: 20px auto;
+      width: 250px;
+      height: 250px;
+      border-radius: 50%;
+      background: gold;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
     }
   </style>
 </head>
@@ -117,7 +127,10 @@
     <button id="removeAllBtn" class="btn">Remove All Guests</button>
   </div>
 
-  <img id="bottomImage" src="gambling.webp" alt="Gambling Image" />
+  <div id="winnerCircleContainer">
+    <h2>Winner's Circle</h2>
+    <div id="winnerCircle"></div>
+  </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-app.js";
@@ -162,6 +175,7 @@
     const winMinBoundInput = document.getElementById('winMinBound');
     const winMaxBoundInput = document.getElementById('winMaxBound');
     const resetGameBtn = document.getElementById('resetGameBtn');
+    const winnerCircle = document.getElementById('winnerCircle');
 
     const initialBitsInput = document.getElementById('initialBits');
     const currentBitsInput = document.getElementById('currentBits');
@@ -171,6 +185,15 @@
     const netUSDDisplay = document.getElementById('netUSD');
 
     const currentBtcPriceInput = document.getElementById('currentBtcPriceInput');
+
+    const generateRandomBet = () => {
+      const min = parseFloat(winMinBoundInput.textContent) || 0;
+      const max = parseFloat(winMaxBoundInput.textContent) || 0;
+
+      if (max <= min) return min;
+
+      return (Math.random() * (max - min) + min).toFixed(2);
+    };
 
     const computeWinners = async () => {
       const guestsSnap = await get(ref(db, 'guests'));
@@ -353,7 +376,14 @@
       });
     };
 
-    onValue(ref(db, 'guests'), () => renderScoreboard());
+    onValue(ref(db, 'guests'), () => {
+      renderScoreboard();
+      renderWinnerCircle();
+    });
+
+    onValue(ref(db, 'winners'), () => {
+      renderWinnerCircle();
+    });
 
     window.adjustBust = async (key, delta) => {
       const guestRef = ref(db, `guests/${key}`);
@@ -453,6 +483,44 @@
       sortOrder = [];
 
       renderScoreboard();
+    };
+
+    const renderWinnerCircle = async () => {
+      const winnersSnap = await get(ref(db, 'winners'));
+      const guestsSnap = await get(ref(db, 'guests'));
+
+      winnerCircle.innerHTML = '';
+
+      if (!winnersSnap.exists()) return;
+
+      const winners = winnersSnap.val();
+
+      winners && Object.keys(winners).forEach(key => {
+        const guest = guestsSnap.val()[key];
+        if (!guest) return;
+
+        const container = document.createElement('div');
+
+        const nameEl = document.createElement('div');
+        nameEl.textContent = guest.name;
+
+        const betBtn = document.createElement('button');
+        betBtn.className = 'btn';
+        betBtn.textContent = 'Random Bet Amount';
+
+        const betDisplay = document.createElement('div');
+        betDisplay.style.marginTop = '5px';
+
+        betBtn.onclick = () => {
+          betDisplay.textContent = `$${generateRandomBet()}`;
+        };
+
+        container.appendChild(nameEl);
+        container.appendChild(betBtn);
+        container.appendChild(betDisplay);
+
+        winnerCircle.appendChild(container);
+      });
     };
 
     window.removeGuest = async (key) => { await remove(ref(db, `guests/${key}`)); renderScoreboard(); };
