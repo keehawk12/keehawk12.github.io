@@ -113,6 +113,7 @@
       <tbody id="scoreboardBody"></tbody>
     </table>
     <br/>
+    <button id="resetGameBtn" class="btn">Reset Game</button>
     <button id="removeAllBtn" class="btn">Remove All Guests</button>
   </div>
 
@@ -160,6 +161,7 @@
     const roundsPerGameInput = document.getElementById('roundsPerGame');
     const winMinBoundInput = document.getElementById('winMinBound');
     const winMaxBoundInput = document.getElementById('winMaxBound');
+    const resetGameBtn = document.getElementById('resetGameBtn');
 
     const initialBitsInput = document.getElementById('initialBits');
     const currentBitsInput = document.getElementById('currentBits');
@@ -377,6 +379,30 @@
     onValue(ref(db, 'rounds'), (snapshot) => {
       roundsCounter.textContent = snapshot.exists() ? snapshot.val() : 0;
     });
+
+    resetGameBtn.onclick = async () => {
+      const guestsRef = ref(db, 'guests');
+      const guestsSnap = await get(guestsRef);
+
+      const updates = {};
+
+      guestsSnap.forEach(child => {
+        updates[`${child.key}/pressed`] = false;
+        updates[`${child.key}/busts`] = 0;
+        updates[`${child.key}/cashes`] = 0;
+      });
+
+      // Apply all guest updates at once
+      await update(guestsRef, updates);
+
+      // Reset rounds to 1
+      await update(ref(db), { rounds: 1 });
+
+      // Clear any frozen sort order (optional but recommended)
+      sortOrder = [];
+
+      renderScoreboard();
+    };
 
     window.removeGuest = async (key) => { await remove(ref(db, `guests/${key}`)); renderScoreboard(); };
   </script>
