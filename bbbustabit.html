@@ -33,13 +33,32 @@
       height: auto;
       z-index: -1;
     }
+
+    #winnerCircleContainer {
+      margin-top: 40px; 
+      text-align: center;
+    }
+
+    #winnerCircle {
+      margin: 20px auto; 
+      width: 250px; 
+      height: 250px; 
+      border-radius: 50%; 
+      background: gold; 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center; 
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
   <div id="home">
     <h1>The Betting Basterds Play Bustabit and Lose Everything</h1>
-    <button id="guestBtn" class="btn">Basterd</button>
+    <button id="guestBtn" class="btn">Hoe</button>
     <button id="hostBtn" class="btn">Host</button>
+    <img id="bottomImage" src="gambling.webp" alt="Gambling Image" />
   </div>
 
   <div id="guestNameScreen" class="hidden">
@@ -69,27 +88,58 @@
       </tbody>
     </table>
 
-     <h2>
+    <table id="paramTable" style="position: absolute; top: 180px; right: 10px; border-collapse: collapse;">
+      <thead>
+        <tr>
+          <th>Parameter</th>
+          <th>Value</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Rounds/game</td>
+          <td contenteditable id="roundsPerGame">10</td>
+        </tr>
+        <tr>
+          <td>Win Min Bound</td>
+          <td contenteditable id="winMinBound">1</td>
+        </tr>
+        <tr>
+          <td>Win Max Bound</td>
+          <td contenteditable id="winMaxBound">100</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>
       Pull Out Indicator:
       <span id="majorityLight"></span>
       <button id="cashBtn" class="btn" style="background-color: lightgreen;">Cash</button>
       <button id="bustBtn" class="btn" style="background-color: lightcoral;">Bust</button>
+      <span style="margin: 0 10px;">
+        Round: <span id="roundsCounter">1</span>
+      </span>
     </h2>
-    <button id="resetBuzzersBtn" class="btn">Reset All Buzzers</button>
-    <button id="resetBustsBtn" class="btn">Reset Bust Counters</button>
-    <button id="resetCashesBtn" class="btn">Reset Cash Counters</button>
+    <button id="resetBuzzersBtn" class="btn">Reset Buzzers</button>
+    <button id="resetBustsBtn" class="btn">Reset Busts</button>
+    <button id="resetCashesBtn" class="btn">Reset Cashes</button>
+    <button id="resetRoundsBtn" class="btn">Reset Rounds</button>
     <h3>Total Guests: <span id="guestCount">0</span></h3>
     <table>
       <thead>
-        <tr><th>Basterd</th><th>Pull Out?</th><th>Busts</th><th>Cashes</th><th>Score</th><th></th></tr>
+        <tr><th>Hoe</th><th>Pull Out?</th><th>Busts</th><th>Cashes</th><th>Score</th><th></th></tr>
       </thead>
       <tbody id="scoreboardBody"></tbody>
     </table>
     <br/>
+    <button id="resetGameBtn" class="btn">Reset Game</button>
     <button id="removeAllBtn" class="btn">Remove All Guests</button>
-  </div>
 
-  <img id="bottomImage" src="gambling.webp" alt="Gambling Image" />
+    <div id="winnerCircleContainer">
+      <h2>Winner's Circle</h2>
+      <div id="winnerCircle"></div>
+    </div>
+  </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-app.js";
@@ -105,7 +155,7 @@
       appId: "1:142113264714:web:da2a1b1e82d9a1743482b3",
       measurementId: "G-SWBCPEGV7L"
     };
-    
+
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
@@ -125,9 +175,16 @@
     const removeAllBtn = document.getElementById('removeAllBtn');
     const resetBustsBtn = document.getElementById('resetBustsBtn');
     const resetCashesBtn = document.getElementById('resetCashesBtn');
+    const resetRoundsBtn = document.getElementById('resetRoundsBtn');
     const majorityLight = document.getElementById('majorityLight');
     const cashBtn = document.getElementById('cashBtn');
     const bustBtn = document.getElementById('bustBtn');
+    const roundsCounter = document.getElementById('roundsCounter');
+    const roundsPerGameInput = document.getElementById('roundsPerGame');
+    const winMinBoundInput = document.getElementById('winMinBound');
+    const winMaxBoundInput = document.getElementById('winMaxBound');
+    const resetGameBtn = document.getElementById('resetGameBtn');
+    const winnerCircle = document.getElementById('winnerCircle');
 
     const initialBitsInput = document.getElementById('initialBits');
     const currentBitsInput = document.getElementById('currentBits');
@@ -137,6 +194,37 @@
     const netUSDDisplay = document.getElementById('netUSD');
 
     const currentBtcPriceInput = document.getElementById('currentBtcPriceInput');
+
+    const computeWinners = async () => {
+      const guestsSnap = await get(ref(db, 'guests'));
+      let maxScore = -Infinity;
+      const scores = {};
+
+      guestsSnap.forEach(child => {
+        const data = child.val();
+        const score = (data.cashes || 0) - (data.busts || 0);
+        scores[child.key] = score;
+        if (score > maxScore) maxScore = score;
+      });
+
+      const winners = {};
+      Object.keys(scores).forEach(key => {
+        if (scores[key] === maxScore) {
+          winners[key] = true;
+        }
+      });
+
+      await update(ref(db), { winners });
+    };
+
+    const handleGameEndIfNeeded = async (newRounds) => {
+      const roundsPerGame = parseFloat(roundsPerGameInput.textContent) || 0;
+
+      // Only trigger when we JUST hit the final round
+      if (roundsPerGame > 0 && newRounds === roundsPerGame + 1) {
+        await computeWinners();
+      }
+    };
 
     let currentGuestKey = null;
     let sortOrder = [];
@@ -195,14 +283,7 @@
       await update(guestsRef, updates);
 
       // Capture sort order by score at this point
-      sortOrder = [];
-      guestsSnap.forEach(child => {
-        const data = child.val();
-        sortOrder.push({ key: child.key, score: (data.cashes || 0) - (data.busts || 0) });
-      });
-      // Sort descending by score
-      sortOrder.sort((a, b) => b.score - a.score);
-
+      updateSortOrder(guestsSnap);
       renderScoreboard();
     };
 
@@ -218,11 +299,18 @@
       renderScoreboard();
     };
 
+    resetRoundsBtn.onclick = async () => {
+      await update(ref(db), { rounds: 1 });
+      renderScoreboard();
+    };
+
     removeAllBtn.onclick = async () => { await remove(ref(db, 'guests')); renderScoreboard(); };
 
     const renderScoreboard = () => {
-      const scoreboardSnapshot = ref(db, 'guests');
-      get(scoreboardSnapshot).then(snapshot => {
+      get(ref(db, 'guests')).then(async snapshot => {
+        const winnersSnap = await get(ref(db, 'winners'));
+        const winners = winnersSnap.exists() ? winnersSnap.val() : {};
+
         scoreboardBody.innerHTML = '';
         let count = 0;
         let pressedCount = 0;
@@ -231,20 +319,30 @@
         snapshot.forEach(child => {
           const data = child.val();
           guestsData[child.key] = data;
-          count++; if (data.pressed) pressedCount++; updateBuzzerColor(child.key);
+          count++;
+          if (data.pressed) pressedCount++;
+          updateBuzzerColor(child.key);
         });
 
-        // Render according to sortOrder if set
         const renderKeys = sortOrder.length ? sortOrder.map(x => x.key) : Object.keys(guestsData);
 
         renderKeys.forEach(key => {
           const data = guestsData[key];
           if (!data) return;
+
           const row = document.createElement('tr');
-          row.style.backgroundColor = data.pressed ? 'lightgreen' : 'lightcoral';
           row.id = `row-${key}`;
+
           const busts = data.busts || 0;
           const cashes = data.cashes || 0;
+
+          // ⭐ WINNER LOGIC
+          if (winners[key]) {
+            row.style.backgroundColor = 'yellow';
+          } else {
+            row.style.backgroundColor = data.pressed ? 'lightgreen' : 'lightcoral';
+          }
+
           row.innerHTML = `
             <td>${data.name}</td>
             <td>${data.pressed ? 'Yes' : 'No'}</td>
@@ -261,11 +359,13 @@
             <td>${cashes - busts}</td>
             <td><button class='btn' onclick='removeGuest("${key}")'>Remove</button></td>
           `;
+
           scoreboardBody.appendChild(row);
         });
 
         guestCount.textContent = count;
-        majorityLight.style.backgroundColor = (count > 0 && pressedCount / count >= 0.5) ? 'green' : 'red';
+        majorityLight.style.backgroundColor =
+          (count > 0 && pressedCount / count >= 0.5) ? 'green' : 'red';
       });
     };
 
@@ -290,35 +390,170 @@
     };
 
     cashBtn.onclick = async () => {
-      const guestsSnap = await get(ref(db, 'guests'));
+      const guestsRef = ref(db, 'guests');
+      const roundsRef = ref(db, 'rounds');
+
+      const guestsSnap = await get(guestsRef);
+      const roundsSnap = await get(roundsRef);
+
+      let rounds = roundsSnap.exists() ? roundsSnap.val() : 0;
       const updates = {};
 
+      // Apply cashes
       guestsSnap.forEach(child => {
         const data = child.val();
         if (data.pressed) {
-          const current = data.cashes || 0;
-          updates[`${child.key}/cashes`] = current + 1;
+          updates[`${child.key}/cashes`] = (data.cashes || 0) + 1;
         }
       });
 
-      await update(ref(db, 'guests'), updates);
+      const newRounds = rounds + 1;
+
+      await update(guestsRef, updates);
+      await update(ref(db), { rounds: newRounds });
+
+      const freshSnap = await get(guestsRef);
+      updateSortOrder(freshSnap);
+
+      await resetAllBuzzers();
+      await handleGameEndIfNeeded(newRounds);
       renderScoreboard();
     };
 
     bustBtn.onclick = async () => {
-      const guestsSnap = await get(ref(db, 'guests'));
+      const guestsRef = ref(db, 'guests');
+      const roundsRef = ref(db, 'rounds');
+
+      const guestsSnap = await get(guestsRef);
+      const roundsSnap = await get(roundsRef);
+
+      let rounds = roundsSnap.exists() ? roundsSnap.val() : 0;
       const updates = {};
 
+      // Apply busts
       guestsSnap.forEach(child => {
         const data = child.val();
         if (!data.pressed) {
-          const current = data.busts || 0;
-          updates[`${child.key}/busts`] = current + 1;
+          updates[`${child.key}/busts`] = (data.busts || 0) + 1;
         }
       });
 
-      await update(ref(db, 'guests'), updates);
+      const newRounds = rounds + 1;
+
+      await update(guestsRef, updates);
+      await update(ref(db), { rounds: newRounds });
+
+      const freshSnap = await get(guestsRef);
+      updateSortOrder(freshSnap);
+
+      await resetAllBuzzers();
+      await handleGameEndIfNeeded(newRounds);
       renderScoreboard();
+    };
+
+    onValue(ref(db, 'rounds'), (snapshot) => {
+      roundsCounter.textContent = snapshot.exists() ? snapshot.val() : 0;
+    });
+
+    resetGameBtn.onclick = async () => {
+      const guestsRef = ref(db, 'guests');
+      const guestsSnap = await get(guestsRef);
+
+      const updates = {};
+
+      guestsSnap.forEach(child => {
+        updates[`${child.key}/pressed`] = false;
+        updates[`${child.key}/busts`] = 0;
+        updates[`${child.key}/cashes`] = 0;
+      });
+
+      await update(guestsRef, updates);
+
+      // Reset rounds AND clear winners
+      await update(ref(db), { rounds: 1, winners: null });
+
+      sortOrder = [];
+
+      renderScoreboard();
+    };
+
+    const renderWinnerCircle = async () => {
+      const winnersSnap = await get(ref(db, 'winners'));
+      const guestsSnap = await get(ref(db, 'guests'));
+
+      winnerCircle.innerHTML = '';
+
+      if (!winnersSnap.exists()) return;
+
+      const winners = winnersSnap.val();
+      const guests = guestsSnap.val();
+
+      Object.keys(winners).forEach(key => {
+        const guest = guests[key];
+        if (!guest) return;
+
+        const container = document.createElement('div');
+        container.style.marginBottom = '10px';
+
+        const nameEl = document.createElement('div');
+        nameEl.textContent = guest.name;
+
+        const betBtn = document.createElement('button');
+        betBtn.className = 'btn';
+        betBtn.textContent = 'Random Bet Amount';
+
+        const betDisplay = document.createElement('div');
+
+        betBtn.onclick = () => {
+          const value = generateRandomBet();
+          betDisplay.textContent = value;
+        };
+
+        container.appendChild(nameEl);
+        container.appendChild(betBtn);
+        container.appendChild(betDisplay);
+
+        winnerCircle.appendChild(container);
+      });
+    };
+
+    onValue(ref(db, 'winners'), () => {
+      renderWinnerCircle();
+    });
+
+    const generateRandomBet = () => {
+      const min = parseFloat(winMinBoundInput.textContent) || 1;
+      const max = parseFloat(winMaxBoundInput.textContent) || 100;
+
+      if (max <= min) return min;
+
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    };
+
+    const resetAllBuzzers = async () => {
+      const guestsRef = ref(db, 'guests');
+      const guestsSnap = await get(guestsRef);
+
+      const updates = {};
+      guestsSnap.forEach(child => {
+        updates[`${child.key}/pressed`] = false;
+      });
+
+      await update(guestsRef, updates);
+    };
+
+    const updateSortOrder = (guestsSnap) => {
+      sortOrder = [];
+
+      guestsSnap.forEach(child => {
+        const data = child.val();
+        sortOrder.push({
+          key: child.key,
+          score: (data.cashes || 0) - (data.busts || 0)
+        });
+      });
+
+      sortOrder.sort((a, b) => b.score - a.score);
     };
 
     window.removeGuest = async (key) => { await remove(ref(db, `guests/${key}`)); renderScoreboard(); };
