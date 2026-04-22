@@ -128,6 +128,7 @@
     const removeAllBtn = document.getElementById('removeAllBtn');
     const resetBustsBtn = document.getElementById('resetBustsBtn');
     const resetCashesBtn = document.getElementById('resetCashesBtn');
+    const resetRoundsBtn = document.getElementById('resetRoundsBtn');
     const majorityLight = document.getElementById('majorityLight');
     const cashBtn = document.getElementById('cashBtn');
     const bustBtn = document.getElementById('bustBtn');
@@ -194,19 +195,17 @@
     resetBuzzersBtn.onclick = async () => {
       const guestsRef = ref(db, 'guests');
       const guestsSnap = await get(guestsRef);
-
       const updates = {};
       guestsSnap.forEach(child => { updates[child.key + '/pressed'] = false; });
-
       await update(guestsRef, updates);
-      await update(ref(db), { rounds: 0 }); // reset rounds
 
-      // existing sort logic...
+      // Capture sort order by score at this point
       sortOrder = [];
       guestsSnap.forEach(child => {
         const data = child.val();
         sortOrder.push({ key: child.key, score: (data.cashes || 0) - (data.busts || 0) });
       });
+      // Sort descending by score
       sortOrder.sort((a, b) => b.score - a.score);
 
       renderScoreboard();
@@ -221,6 +220,11 @@
     resetCashesBtn.onclick = async () => {
       const guestsSnap = await get(ref(db, 'guests'));
       guestsSnap.forEach(child => { update(ref(db, `guests/${child.key}`), { cashes: 0 }); });
+      renderScoreboard();
+    };
+
+    resetRoundsBtn.onclick = async () => {
+      await update(ref(db), { rounds: 0 });
       renderScoreboard();
     };
 
