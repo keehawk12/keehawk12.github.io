@@ -54,23 +54,27 @@
   </style>
 </head>
 <body>
-  <div id="home">
-    <h1>Hoes et al. Play Bustabit and Lose Everything</h1>
-    <button id="guestBtn" class="btn">Hoe</button>
-    <button id="hostBtn" class="btn">Host</button>
+
+  <div id="publicScreens">
     <img id="bottomImage" src="gambling.webp" alt="Gambling Image" />
-  </div>
 
-  <div id="guestNameScreen" class="hidden">
-    <h2>Enter Your Name</h2>
-    <input type="text" id="guestNameInput" placeholder="Your name" />
-    <br/><br/>
-    <button id="submitNameBtn" class="btn">Submit</button>
-  </div>
+    <div id="home">
+      <h1>Hoes et al. Play Bustabit and Lose Everything</h1>
+      <button id="guestBtn" class="btn">Hoe</button>
+      <button id="hostBtn" class="btn">Host</button>
+    </div>
 
-  <div id="buzzerScreen" class="hidden">
-    <h2 id="welcomeText"></h2>
-    <div id="buzzer"></div>
+    <div id="guestNameScreen" class="hidden">
+      <h2>Enter Your Name</h2>
+      <input type="text" id="guestNameInput" placeholder="Your name" />
+      <br/><br/>
+      <button id="submitNameBtn" class="btn">Submit</button>
+    </div>
+
+    <div id="buzzerScreen" class="hidden">
+      <h2 id="welcomeText"></h2>
+      <div id="buzzer"></div>
+    </div>
   </div>
 
   <div id="hostScreen" class="hidden">
@@ -185,6 +189,7 @@
     const winMaxBoundInput = document.getElementById('winMaxBound');
     const resetGameBtn = document.getElementById('resetGameBtn');
     const winnerCircle = document.getElementById('winnerCircle');
+    const publicScreens = document.getElementById('publicScreens');
 
     const initialBitsInput = document.getElementById('initialBits');
     const currentBitsInput = document.getElementById('currentBits');
@@ -252,8 +257,17 @@
 
     [initialBitsInput, currentBitsInput, currentBtcPriceInput].forEach(el => { el.addEventListener('input', updateFinance); });
 
-    guestBtn.onclick = () => { home.classList.add('hidden'); guestNameScreen.classList.remove('hidden'); };
-    hostBtn.onclick = () => { home.classList.add('hidden'); hostScreen.classList.remove('hidden'); updateFinance(); };
+    guestBtn.onclick = () => {
+      publicScreens.classList.remove('hidden');
+      home.classList.add('hidden');
+      guestNameScreen.classList.remove('hidden');
+    };
+    hostBtn.onclick = () => {
+      publicScreens.classList.add('hidden');
+      publicScreens.classList.remove('hidden');
+      hostScreen.classList.remove('hidden');
+      updateFinance();
+    };
 
     submitNameBtn.onclick = async () => {
       const name = guestNameInput.value.trim();
@@ -261,6 +275,7 @@
       const newEntry = await push(ref(db, 'guests'), { name, pressed: false, busts: 0, cashes: 0 });
       currentGuestKey = newEntry.key;
       guestNameScreen.classList.add('hidden');
+      home.classList.add('hidden');
       buzzerScreen.classList.remove('hidden');
       welcomeText.textContent = `Press the buzzer to pull out!`;
       buzzer.style.backgroundColor = 'red';
@@ -269,7 +284,8 @@
     const updateBuzzerColor = async (key) => {
       if (currentGuestKey === key) {
         const snap = await get(ref(db, `guests/${key}`));
-        buzzer.style.backgroundColor = snap.val().pressed ? 'green' : 'red';
+        const data = snap.val() || {};
+        buzzer.style.backgroundColor = data.pressed ? 'green' : 'red';
       }
     };
 
@@ -505,7 +521,8 @@
       const winners = winnersSnap.val();
 
       winners && Object.keys(winners).forEach(key => {
-        const guest = guestsSnap.val()[key];
+        const guestsData = guestsSnap.exists() ? guestsSnap.val() : {};
+        const guest = guestsData[key];
         if (!guest) return;
 
         const container = document.createElement('div');
