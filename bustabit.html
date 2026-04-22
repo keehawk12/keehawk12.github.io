@@ -419,6 +419,8 @@
       await update(guestsRef, updates);
       await update(ref(db), { rounds: newRounds });
 
+      await resetAllBuzzers();
+
       await handleGameEndIfNeeded(newRounds);
 
       renderScoreboard();
@@ -446,6 +448,8 @@
 
       await update(guestsRef, updates);
       await update(ref(db), { rounds: newRounds });
+
+      await resetAllBuzzers();
 
       await handleGameEndIfNeeded(newRounds);
 
@@ -529,6 +533,18 @@
       if (max <= min) return min;
 
       return Math.floor(Math.random() * (max - min + 1)) + min;
+    };
+
+    const resetAllBuzzers = async () => {
+      const guestsRef = ref(db, 'guests');
+      const guestsSnap = await get(guestsRef);
+
+      const updates = {};
+      guestsSnap.forEach(child => {
+        updates[`${child.key}/pressed`] = false;
+      });
+
+      await update(guestsRef, updates);
     };
 
     window.removeGuest = async (key) => { await remove(ref(db, `guests/${key}`)); renderScoreboard(); };
