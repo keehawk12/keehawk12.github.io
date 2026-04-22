@@ -74,6 +74,9 @@
       <span id="majorityLight"></span>
       <button id="cashBtn" class="btn" style="background-color: lightgreen;">Cash</button>
       <button id="bustBtn" class="btn" style="background-color: lightcoral;">Bust</button>
+      <span style="margin: 0 10px;">
+        Rounds: <span id="roundsCounter">0</span>
+      </span>
     </h2>
     <button id="resetBuzzersBtn" class="btn">Reset All Buzzers</button>
     <button id="resetBustsBtn" class="btn">Reset Bust Counters</button>
@@ -128,6 +131,7 @@
     const majorityLight = document.getElementById('majorityLight');
     const cashBtn = document.getElementById('cashBtn');
     const bustBtn = document.getElementById('bustBtn');
+    const roundsCounter = document.getElementById('roundsCounter');
 
     const initialBitsInput = document.getElementById('initialBits');
     const currentBitsInput = document.getElementById('currentBits');
@@ -190,17 +194,19 @@
     resetBuzzersBtn.onclick = async () => {
       const guestsRef = ref(db, 'guests');
       const guestsSnap = await get(guestsRef);
+
       const updates = {};
       guestsSnap.forEach(child => { updates[child.key + '/pressed'] = false; });
-      await update(guestsRef, updates);
 
-      // Capture sort order by score at this point
+      await update(guestsRef, updates);
+      await update(ref(db), { rounds: 0 }); // reset rounds
+
+      // existing sort logic...
       sortOrder = [];
       guestsSnap.forEach(child => {
         const data = child.val();
         sortOrder.push({ key: child.key, score: (data.cashes || 0) - (data.busts || 0) });
       });
-      // Sort descending by score
       sortOrder.sort((a, b) => b.score - a.score);
 
       renderScoreboard();
@@ -290,8 +296,14 @@
     };
 
     cashBtn.onclick = async () => {
-      const guestsSnap = await get(ref(db, 'guests'));
+      const guestsRef = ref(db, 'guests');
+      const roundsRef = ref(db, 'rounds');
+
+      const guestsSnap = await get(guestsRef);
+      const roundsSnap = await get(roundsRef);
+
       const updates = {};
+      let rounds = roundsSnap.exists() ? roundsSnap.val() : 0;
 
       guestsSnap.forEach(child => {
         const data = child.val();
@@ -301,13 +313,21 @@
         }
       });
 
-      await update(ref(db, 'guests'), updates);
+      await update(guestsRef, updates);
+      await update(ref(db), { rounds: rounds + 1 });
+
       renderScoreboard();
     };
 
     bustBtn.onclick = async () => {
-      const guestsSnap = await get(ref(db, 'guests'));
+      const guestsRef = ref(db, 'guests');
+      const roundsRef = ref(db, 'rounds');
+
+      const guestsSnap = await get(guestsRef);
+      const roundsSnap = await get(roundsRef);
+
       const updates = {};
+      let rounds = roundsSnap.exists() ? roundsSnap.val() : 0;
 
       guestsSnap.forEach(child => {
         const data = child.val();
@@ -317,9 +337,15 @@
         }
       });
 
-      await update(ref(db, 'guests'), updates);
+      await update(guestsRef, updates);
+      await update(ref(db), { rounds: rounds + 1 });
+
       renderScoreboard();
     };
+
+    onValue(ref(db, 'rounds'), (snapshot) => {
+      roundsCounter.textContent = snapshot.exists() ? snapshot.val() : 0;
+    });
 
     window.removeGuest = async (key) => { await remove(ref(db, `guests/${key}`)); renderScoreboard(); };
   </script>
