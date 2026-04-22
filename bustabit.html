@@ -283,14 +283,7 @@
       await update(guestsRef, updates);
 
       // Capture sort order by score at this point
-      sortOrder = [];
-      guestsSnap.forEach(child => {
-        const data = child.val();
-        sortOrder.push({ key: child.key, score: (data.cashes || 0) - (data.busts || 0) });
-      });
-      // Sort descending by score
-      sortOrder.sort((a, b) => b.score - a.score);
-
+      updateSortOrder(guestsSnap);
       renderScoreboard();
     };
 
@@ -419,10 +412,11 @@
       await update(guestsRef, updates);
       await update(ref(db), { rounds: newRounds });
 
+      const freshSnap = await get(guestsRef);
+      updateSortOrder(freshSnap);
+
       await resetAllBuzzers();
-
       await handleGameEndIfNeeded(newRounds);
-
       renderScoreboard();
     };
 
@@ -449,10 +443,11 @@
       await update(guestsRef, updates);
       await update(ref(db), { rounds: newRounds });
 
+      const freshSnap = await get(guestsRef);
+      updateSortOrder(freshSnap);
+
       await resetAllBuzzers();
-
       await handleGameEndIfNeeded(newRounds);
-
       renderScoreboard();
     };
 
@@ -545,6 +540,20 @@
       });
 
       await update(guestsRef, updates);
+    };
+
+    const updateSortOrder = (guestsSnap) => {
+      sortOrder = [];
+
+      guestsSnap.forEach(child => {
+        const data = child.val();
+        sortOrder.push({
+          key: child.key,
+          score: (data.cashes || 0) - (data.busts || 0)
+        });
+      });
+
+      sortOrder.sort((a, b) => b.score - a.score);
     };
 
     window.removeGuest = async (key) => { await remove(ref(db, `guests/${key}`)); renderScoreboard(); };
