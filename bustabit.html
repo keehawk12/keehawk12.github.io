@@ -172,6 +172,37 @@
 
     const currentBtcPriceInput = document.getElementById('currentBtcPriceInput');
 
+    const computeWinners = async () => {
+      const guestsSnap = await get(ref(db, 'guests'));
+      let maxScore = -Infinity;
+      const scores = {};
+
+      guestsSnap.forEach(child => {
+        const data = child.val();
+        const score = (data.cashes || 0) - (data.busts || 0);
+        scores[child.key] = score;
+        if (score > maxScore) maxScore = score;
+      });
+
+      const winners = {};
+      Object.keys(scores).forEach(key => {
+        if (scores[key] === maxScore) {
+          winners[key] = true;
+        }
+      });
+
+      await update(ref(db), { winners });
+    };
+
+    const handleGameEndIfNeeded = async (newRounds) => {
+      const roundsPerGame = parseFloat(roundsPerGameInput.textContent) || 0;
+
+      // Only trigger when we JUST hit the final round
+      if (roundsPerGame > 0 && newRounds === roundsPerGame + 1) {
+        await computeWinners();
+      }
+    };
+
     let currentGuestKey = null;
     let sortOrder = [];
 
@@ -260,8 +291,10 @@
     removeAllBtn.onclick = async () => { await remove(ref(db, 'guests')); renderScoreboard(); };
 
     const renderScoreboard = () => {
-      const scoreboardSnapshot = ref(db, 'guests');
-      get(scoreboardSnapshot).then(snapshot => {
+      get(ref(db, 'guests')).then(async snapshot => {
+        const winnersSnap = await get(ref(db, 'winners'));
+        const winners = winnersSnap.exists() ? winnersSnap.val() : {};
+
         scoreboardBody.innerHTML = '';
         let count = 0;
         let pressedCount = 0;
@@ -270,20 +303,30 @@
         snapshot.forEach(child => {
           const data = child.val();
           guestsData[child.key] = data;
-          count++; if (data.pressed) pressedCount++; updateBuzzerColor(child.key);
+          count++;
+          if (data.pressed) pressedCount++;
+          updateBuzzerColor(child.key);
         });
 
-        // Render according to sortOrder if set
         const renderKeys = sortOrder.length ? sortOrder.map(x => x.key) : Object.keys(guestsData);
 
         renderKeys.forEach(key => {
           const data = guestsData[key];
           if (!data) return;
+
           const row = document.createElement('tr');
-          row.style.backgroundColor = data.pressed ? 'lightgreen' : 'lightcoral';
           row.id = `row-${key}`;
+
           const busts = data.busts || 0;
           const cashes = data.cashes || 0;
+
+          // ⭐ WINNER LOGIC
+          if (winners[key]) {
+            row.style.backgroundColor = 'yellow';
+          } else {
+            row.style.backgroundColor = data.pressed ? 'lightgreen' : 'lightcoral';
+          }
+
           row.innerHTML = `
             <td>${data.name}</td>
             <td>${data.pressed ? 'Yes' : 'No'}</td>
@@ -300,11 +343,13 @@
             <td>${cashes - busts}</td>
             <td><button class='btn' onclick='removeGuest("${key}")'>Remove</button></td>
           `;
+
           scoreboardBody.appendChild(row);
         });
 
         guestCount.textContent = count;
-        majorityLight.style.backgroundColor = (count > 0 && pressedCount / count >= 0.5) ? 'green' : 'red';
+        majorityLight.style.backgroundColor =
+          (count > 0 && pressedCount / count >= 0.5) ? 'green' : 'red';
       });
     };
 
@@ -335,19 +380,23 @@
       const guestsSnap = await get(guestsRef);
       const roundsSnap = await get(roundsRef);
 
-      const updates = {};
       let rounds = roundsSnap.exists() ? roundsSnap.val() : 0;
+      const updates = {};
 
+      // Apply cashes
       guestsSnap.forEach(child => {
         const data = child.val();
         if (data.pressed) {
-          const current = data.cashes || 0;
-          updates[`${child.key}/cashes`] = current + 1;
+          updates[`${child.key}/cashes`] = (data.cashes || 0) + 1;
         }
       });
 
+      const newRounds = rounds + 1;
+
       await update(guestsRef, updates);
-      await update(ref(db), { rounds: rounds + 1 });
+      await update(ref(db), { rounds: newRounds });
+
+      await handleGameEndIfNeeded(newRounds);
 
       renderScoreboard();
     };
@@ -359,19 +408,23 @@
       const guestsSnap = await get(guestsRef);
       const roundsSnap = await get(roundsRef);
 
-      const updates = {};
       let rounds = roundsSnap.exists() ? roundsSnap.val() : 0;
+      const updates = {};
 
+      // Apply busts
       guestsSnap.forEach(child => {
         const data = child.val();
         if (!data.pressed) {
-          const current = data.busts || 0;
-          updates[`${child.key}/busts`] = current + 1;
+          updates[`${child.key}/busts`] = (data.busts || 0) + 1;
         }
       });
 
+      const newRounds = rounds + 1;
+
       await update(guestsRef, updates);
-      await update(ref(db), { rounds: rounds + 1 });
+      await update(ref(db), { rounds: newRounds });
+
+      await handleGameEndIfNeeded(newRounds);
 
       renderScoreboard();
     };
@@ -392,13 +445,11 @@
         updates[`${child.key}/cashes`] = 0;
       });
 
-      // Apply all guest updates at once
       await update(guestsRef, updates);
 
-      // Reset rounds to 1
-      await update(ref(db), { rounds: 1 });
+      // Reset rounds AND clear winners
+      await update(ref(db), { rounds: 1, winners: null });
 
-      // Clear any frozen sort order (optional but recommended)
       sortOrder = [];
 
       renderScoreboard();
