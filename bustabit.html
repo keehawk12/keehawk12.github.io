@@ -26,6 +26,14 @@
     #btcPriceContainer { position: absolute; top: 10px; left: 10px; font-size: 16px; display: flex; flex-direction: column; align-items: flex-start; }
     #btcPriceContainer input { width: 100px; margin: 2px 0; }
 
+    #bottomImage {
+      display: block;
+      margin: 40px auto 0 auto;
+      max-width: 250px;
+      height: auto;
+      z-index: -1;
+    }
+
     #winnerCircleContainer {
       margin-top: 40px;
       text-align: center;
@@ -50,6 +58,7 @@
     <h1>Hoes et al. Play Bustabit and Lose Everything</h1>
     <button id="guestBtn" class="btn">Hoe</button>
     <button id="hostBtn" class="btn">Host</button>
+    <img id="bottomImage" src="gambling.webp" alt="Gambling Image" />
   </div>
 
   <div id="guestNameScreen" class="hidden">
@@ -125,11 +134,11 @@
     <br/>
     <button id="resetGameBtn" class="btn">Reset Game</button>
     <button id="removeAllBtn" class="btn">Remove All Guests</button>
-  </div>
 
-  <div id="winnerCircleContainer">
-    <h2>Winner's Circle</h2>
-    <div id="winnerCircle"></div>
+    <div id="winnerCircleContainer">
+      <h2>Winner's Circle</h2>
+      <div id="winnerCircle"></div>
+    </div>
   </div>
 
   <script type="module">
@@ -192,7 +201,7 @@
 
       if (max <= min) return min;
 
-      return (Math.random() * (max - min) + min).toFixed(2);
+      return Math.floor(Math.random() * (max - min + 1)) + min;
     };
 
     const computeWinners = async () => {
@@ -512,7 +521,7 @@
         betDisplay.style.marginTop = '5px';
 
         betBtn.onclick = () => {
-          betDisplay.textContent = `$${generateRandomBet()}`;
+          betDisplay.textContent = generateRandomBet();
         };
 
         container.appendChild(nameEl);
