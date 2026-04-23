@@ -540,6 +540,15 @@
       return Math.floor(Math.random() * (max - min + 1)) + min;
     };
 
+    const generateRandomBet_2 = () => {
+      const min = parseFloat(winMinBetsInput.textContent) || 1;
+      const max = parseFloat(winMaxBetsInput.textContent) || 100;
+
+      if (max <= min) return min;
+
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    };
+
     const resetAllBuzzers = async () => {
       const guestsRef = ref(db, 'guests');
       const guestsSnap = await get(guestsRef);
