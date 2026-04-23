@@ -510,13 +510,14 @@
 
         const betBtn = document.createElement('button');
         betBtn.className = 'btn';
-        betBtn.textContent = 'Random Bet Amount';
+        betBtn.textContent = 'Random Amount - # of Bets';
 
         const betDisplay = document.createElement('div');
 
         betBtn.onclick = () => {
-          const value = generateRandomBet();
-          betDisplay.textContent = value;
+          const value_1 = generateRandomBet();
+          const value_2 = generateRandomBet_2();
+          betDisplay.textContent = `${value_1} bits - ${value_2}x`;
         };
 
         container.appendChild(nameEl);
