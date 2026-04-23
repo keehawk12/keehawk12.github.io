@@ -101,12 +101,20 @@
           <td contenteditable id="roundsPerGame">10</td>
         </tr>
         <tr>
-          <td>Win Min Bound</td>
-          <td contenteditable id="winMinBound">1</td>
+          <td>Win Min Amount</td>
+          <td contenteditable id="winMinAmount">1</td>
         </tr>
         <tr>
-          <td>Win Max Bound</td>
-          <td contenteditable id="winMaxBound">100</td>
+          <td>Win Max Amount</td>
+          <td contenteditable id="winMaxAmount">100</td>
+        </tr>
+        <tr>
+          <td>Win Min Bets</td>
+          <td contenteditable id="winMinBets">1</td>
+        </tr>
+        <tr>
+          <td>Win Max Bets</td>
+          <td contenteditable id="winMaxBets">5</td>
         </tr>
       </tbody>
     </table>
@@ -181,8 +189,10 @@
     const bustBtn = document.getElementById('bustBtn');
     const roundsCounter = document.getElementById('roundsCounter');
     const roundsPerGameInput = document.getElementById('roundsPerGame');
-    const winMinBoundInput = document.getElementById('winMinBound');
-    const winMaxBoundInput = document.getElementById('winMaxBound');
+    const winMinAmountInput = document.getElementById('winMinAmount');
+    const winMaxAmountInput = document.getElementById('winMaxAmount');
+    const winMinBetsInput = document.getElementById('winMinBets');
+    const winMaxBetsInput = document.getElementById('winMaxBets');
     const resetGameBtn = document.getElementById('resetGameBtn');
     const winnerCircle = document.getElementById('winnerCircle');
 
@@ -522,8 +532,8 @@
     });
 
     const generateRandomBet = () => {
-      const min = parseFloat(winMinBoundInput.textContent) || 1;
-      const max = parseFloat(winMaxBoundInput.textContent) || 100;
+      const min = parseFloat(winMinAmountInput.textContent) || 1;
+      const max = parseFloat(winMaxAmountInput.textContent) || 100;
 
       if (max <= min) return min;
 
