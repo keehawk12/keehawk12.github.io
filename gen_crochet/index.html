@@ -2,27 +2,42 @@
 <html lang="en">
 
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>Crochet Pattern Generator</title>
 
-    <link rel="stylesheet" href="style.css">
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+
 </head>
 
+
 <body>
+
 
     <!-- =====================================================
          STARTUP SETTINGS
          ===================================================== -->
 
-    <div id="setupScreen" class="setup-screen">
+    <div
+        id="setupScreen"
+        class="setup-screen"
+    >
 
         <div class="setup-panel">
 
             <h1>Crochet Pattern Generator</h1>
 
             <h2>Pattern Settings</h2>
+
 
             <div class="setup-row">
 
@@ -35,10 +50,11 @@
                     id="nxInput"
                     min="1"
                     max="500"
-                    value="60"
+                    value="58"
                 >
 
             </div>
+
 
             <div class="setup-row">
 
@@ -56,6 +72,7 @@
 
             </div>
 
+
             <div class="setup-row">
 
                 <label for="backgroundColorInput">
@@ -70,10 +87,11 @@
 
             </div>
 
+
             <div class="setup-row">
 
                 <label for="pngInput">
-                    PNG object
+                    Add PNG
                 </label>
 
                 <input
@@ -84,10 +102,12 @@
 
             </div>
 
+
             <p class="setup-note">
-                If no PNG is selected, flower.png will be loaded automatically.
-                You can upload additional PNGs after creating the pattern.
+                Default PNG objects are loaded automatically from
+                the <strong>default</strong> folder.
             </p>
+
 
             <button
                 id="startButton"
@@ -101,6 +121,7 @@
     </div>
 
 
+
     <!-- =====================================================
          MAIN APPLICATION
          ===================================================== -->
@@ -109,6 +130,7 @@
         id="app"
         class="app-container hidden"
     >
+
 
         <!-- =================================================
              CANVAS
@@ -123,6 +145,7 @@
             </div>
 
         </main>
+
 
 
         <!-- =================================================
@@ -142,15 +165,17 @@
 
                 <h3>Pattern</h3>
 
+
                 <div class="info-row">
 
                     <span>Columns:</span>
 
                     <strong id="nxDisplay">
-                        60
+                        58
                     </strong>
 
                 </div>
+
 
                 <div class="info-row">
 
@@ -161,6 +186,7 @@
                     </strong>
 
                 </div>
+
 
                 <div class="control-row">
 
@@ -179,18 +205,20 @@
             </section>
 
 
+
             <!-- =================================================
-                 PNG OBJECT LIBRARY
+                 IMAGE LIBRARY
                  ================================================= -->
 
             <section class="control-section">
 
-                <h3>PNG Objects</h3>
+                <h3>Object Library</h3>
+
 
                 <div class="control-row">
 
                     <label for="objectUpload">
-                        Add PNG
+                        Upload PNG
                     </label>
 
                     <input
@@ -201,12 +229,14 @@
 
                 </div>
 
+
                 <div
                     id="uploadedFileName"
                     class="file-name"
                 >
-                    flower.png
+                    No PNG selected
                 </div>
+
 
                 <div class="control-row">
 
@@ -215,26 +245,18 @@
                     </label>
 
                     <select id="flowerSelect">
+
                     </select>
 
                 </div>
 
-            </section>
-
-
-            <!-- =================================================
-                 OBJECT CONTROLS
-                 ================================================= -->
-
-            <section class="control-section">
-
-                <h3>Objects</h3>
 
                 <div class="button-row">
 
                     <button id="addFlower">
                         Add Object
                     </button>
+
 
                     <button
                         id="deleteFlower"
@@ -248,6 +270,7 @@
             </section>
 
 
+
             <!-- =================================================
                  POSITION
                  ================================================= -->
@@ -255,6 +278,7 @@
             <section class="control-section">
 
                 <h3>Position</h3>
+
 
                 <div class="slider-row">
 
@@ -268,6 +292,7 @@
 
                 </div>
 
+
                 <input
                     type="range"
                     id="xPosition"
@@ -277,6 +302,7 @@
                     value="0.5"
                     disabled
                 >
+
 
                 <div class="slider-row">
 
@@ -289,6 +315,7 @@
                     </span>
 
                 </div>
+
 
                 <input
                     type="range"
@@ -303,6 +330,7 @@
             </section>
 
 
+
             <!-- =================================================
                  ROTATION / SCALE
                  ================================================= -->
@@ -310,6 +338,7 @@
             <section class="control-section">
 
                 <h3>Transform</h3>
+
 
                 <div class="slider-row">
 
@@ -323,6 +352,7 @@
 
                 </div>
 
+
                 <input
                     type="range"
                     id="rotation"
@@ -332,6 +362,7 @@
                     value="0"
                     disabled
                 >
+
 
                 <div class="slider-row">
 
@@ -344,6 +375,7 @@
                     </span>
 
                 </div>
+
 
                 <input
                     type="range"
@@ -358,6 +390,7 @@
             </section>
 
 
+
             <!-- =================================================
                  RUN COUNTS
                  ================================================= -->
@@ -365,6 +398,7 @@
             <section class="control-section">
 
                 <h3>Run Counts</h3>
+
 
                 <div class="checkbox-row">
 
@@ -378,6 +412,7 @@
                     </label>
 
                 </div>
+
 
                 <div class="control-row">
 
@@ -406,6 +441,7 @@
             </section>
 
 
+
             <!-- =================================================
                  DISCRETIZE
                  ================================================= -->
@@ -421,9 +457,11 @@
 
             </section>
 
+
         </aside>
 
     </div>
+
 
 
     <script src="app.js"></script>
