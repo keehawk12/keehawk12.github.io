@@ -1,505 +1,547 @@
 /* ============================================================
-   GLOBAL
-   ============================================================ */
+GLOBAL
+============================================================ */
 
 * {
-    box-sizing: border-box;
-}
+  box-sizing: border-box;
+  }
 
 html,
 body {
-    margin: 0;
-    padding: 0;
-
-    width: 100%;
-    height: 100%;
-
-    font-family: Arial, Helvetica, sans-serif;
-
-    background: #f2f2f2;
+margin: 0;
+padding: 0;
+width: 100%;
+height: 100%;
+font-family: Arial, Helvetica, sans-serif;
+background: #f2f2f2;
+color: #222;
 }
 
-
 /* ============================================================
-   UTILITY
-   ============================================================ */
+UTILITY
+============================================================ */
 
 .hidden {
-    display: none !important;
+display: none !important;
 }
 
-
 /* ============================================================
-   STARTUP SCREEN
-   ============================================================ */
+STARTUP SCREEN
+============================================================ */
 
 .setup-screen {
-    width: 100%;
-    min-height: 100vh;
+width: 100%;
+height: 100vh;
 
-    display: flex;
 
-    align-items: center;
-    justify-content: center;
+display: flex;
+align-items: center;
+justify-content: center;
 
-    padding: 30px;
+background: #f2f2f2;
+
+
 }
-
 
 .setup-panel {
-    width: 100%;
-    max-width: 520px;
+width: 430px;
+max-width: 90%;
 
-    background: white;
 
-    padding: 35px;
+padding: 32px;
 
-    border-radius: 10px;
+background: white;
 
-    box-shadow:
-        0 4px 20px rgba(0, 0, 0, 0.12);
+border-radius: 10px;
+
+box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.15);
+
+
 }
-
 
 .setup-panel h1 {
-    margin-top: 0;
-    margin-bottom: 10px;
+margin-top: 0;
+margin-bottom: 25px;
 
-    font-size: 28px;
+
+text-align: center;
+
+font-size: 26px;
+
+
 }
-
 
 .setup-panel h2 {
-    margin-top: 25px;
-    margin-bottom: 20px;
+margin-top: 0;
+margin-bottom: 20px;
 
-    font-size: 20px;
+
+font-size: 20px;
+
+
 }
-
 
 .setup-row {
-    display: flex;
+display: flex;
 
-    align-items: center;
 
-    margin-bottom: 18px;
+align-items: center;
 
-    gap: 15px;
+justify-content: space-between;
+
+gap: 15px;
+
+margin-bottom: 16px;
+
+
 }
-
 
 .setup-row label {
-    flex: 1;
-
-    font-weight: 500;
+font-size: 14px;
+font-weight: 600;
 }
-
 
 .setup-row input[type="number"] {
-    width: 110px;
+width: 110px;
 
-    padding: 7px 8px;
 
-    border: 1px solid #bbb;
-    border-radius: 4px;
+padding: 7px;
 
-    font-size: 15px;
+border: 1px solid #bbb;
+border-radius: 5px;
+
+
 }
-
 
 .setup-row input[type="color"] {
-    width: 55px;
-    height: 35px;
+width: 55px;
+height: 35px;
 
-    padding: 2px;
 
-    border: 1px solid #bbb;
-    border-radius: 4px;
+padding: 2px;
 
-    cursor: pointer;
+border: 1px solid #aaa;
+border-radius: 5px;
+
+cursor: pointer;
+
+
 }
-
 
 .setup-row input[type="file"] {
-    max-width: 240px;
+max-width: 230px;
 }
-
 
 .setup-note {
-    margin-top: 5px;
-    margin-bottom: 25px;
+margin-top: 20px;
+margin-bottom: 20px;
 
-    font-size: 13px;
 
-    color: #666;
+font-size: 13px;
+
+color: #666;
+
+
 }
 
-
 /* ============================================================
-   BUTTONS
-   ============================================================ */
+BUTTONS
+============================================================ */
 
 button {
-    padding: 8px 12px;
+padding: 8px 12px;
 
-    border: 1px solid #aaa;
-    border-radius: 5px;
 
-    background: #f4f4f4;
+border: 1px solid #aaa;
+border-radius: 5px;
 
-    font-size: 14px;
+background: #f5f5f5;
 
-    cursor: pointer;
+cursor: pointer;
+
+font-size: 13px;
+
+
 }
-
 
 button:hover:not(:disabled) {
-    background: #e7e7e7;
+background: #e7e7e7;
 }
-
 
 button:disabled {
-    opacity: 0.5;
-
-    cursor: not-allowed;
+opacity: 0.45;
+cursor: default;
 }
-
 
 .primary-button {
-    width: 100%;
+width: 100%;
 
-    padding: 11px 16px;
 
-    border: none;
-    border-radius: 6px;
+padding: 11px;
 
-    background: #333;
-    color: white;
+background: #333;
+color: white;
 
-    font-size: 15px;
-    font-weight: bold;
+border: none;
 
-    cursor: pointer;
+font-weight: bold;
+
+
 }
 
-
-.primary-button:hover {
-    background: #222;
+.primary-button:hover:not(:disabled) {
+background: #222;
 }
 
+.secondary-button {
+width: 100%;
+
+
+margin-top: 10px;
+
+padding: 10px;
+
+background: #e8e8e8;
+
+font-weight: bold;
+
+
+}
 
 /* ============================================================
-   MAIN APPLICATION
-   ============================================================ */
+MAIN APPLICATION
+============================================================ */
 
 .app-container {
-    width: 100%;
-    height: 100vh;
+width: 100%;
+height: 100vh;
 
-    display: flex;
 
-    overflow: hidden;
+display: grid;
+
+grid-template-columns: 1fr 320px;
+
+overflow: hidden;
+
+
 }
 
-
 /* ============================================================
-   CANVAS AREA
-   ============================================================ */
+CANVAS AREA
+============================================================ */
 
 .canvas-area {
-    flex: 1;
+min-width: 0;
+min-height: 0;
 
-    min-width: 0;
-    min-height: 0;
 
-    display: flex;
+display: flex;
 
-    align-items: center;
-    justify-content: center;
+align-items: center;
+justify-content: center;
 
-    padding: 20px;
+padding: 20px;
 
-    overflow: auto;
+overflow: auto;
 
-    background: #ddd;
+background: #ddd;
+
+
 }
-
 
 .canvas-wrapper {
-    max-width: 100%;
-    max-height: 100%;
+display: inline-block;
 
-    display: flex;
 
-    align-items: center;
-    justify-content: center;
+max-width: 100%;
+max-height: 100%;
+
+
 }
-
 
 #canvas {
-    display: block;
+display: block;
 
-    max-width: 100%;
-    max-height: calc(100vh - 40px);
 
-    width: auto;
-    height: auto;
+max-width: 100%;
+max-height: calc(100vh - 40px);
 
-    background: white;
+height: auto;
+width: auto;
 
-    box-shadow:
-        0 2px 10px rgba(0, 0, 0, 0.15);
+background: white;
 
-    cursor: default;
+box-shadow:
+    0 2px 10px rgba(0, 0, 0, 0.2);
+
+cursor: crosshair;
+
+
 }
 
-
 /* ============================================================
-   CONTROL PANEL
-   ============================================================ */
+CONTROL PANEL
+============================================================ */
 
 .control-panel {
-    width: 330px;
+width: 320px;
 
-    flex-shrink: 0;
 
-    height: 100vh;
+height: 100vh;
 
-    padding: 20px;
+padding: 20px;
 
-    background: white;
+overflow-y: auto;
 
-    border-left: 1px solid #ccc;
+background: white;
 
-    overflow-y: auto;
+border-left: 1px solid #ccc;
+
+
 }
 
+.control-panel > h2 {
+margin-top: 0;
+margin-bottom: 20px;
 
-.control-panel h2 {
-    margin-top: 0;
-    margin-bottom: 20px;
 
-    font-size: 22px;
+font-size: 21px;
+
+
 }
 
+/* ============================================================
+CONTROL SECTIONS
+============================================================ */
 
 .control-section {
-    padding-bottom: 20px;
-    margin-bottom: 20px;
+margin-bottom: 20px;
 
-    border-bottom: 1px solid #ddd;
+
+padding-bottom: 18px;
+
+border-bottom: 1px solid #ddd;
+
+
 }
-
 
 .control-section:last-child {
-    border-bottom: none;
+border-bottom: none;
 }
-
 
 .control-section h3 {
-    margin-top: 0;
-    margin-bottom: 13px;
+margin-top: 0;
+margin-bottom: 12px;
 
-    font-size: 16px;
+
+font-size: 16px;
+
+
 }
 
-
 /* ============================================================
-   INFO ROW
-   ============================================================ */
+ROWS
+============================================================ */
 
 .info-row {
-    display: flex;
+display: flex;
 
-    justify-content: space-between;
 
-    margin-bottom: 8px;
+justify-content: space-between;
 
-    font-size: 14px;
+margin-bottom: 8px;
+
+font-size: 14px;
+
+
 }
-
-
-/* ============================================================
-   CONTROL ROW
-   ============================================================ */
 
 .control-row {
-    display: flex;
+display: flex;
 
-    align-items: center;
 
-    gap: 10px;
+align-items: center;
 
-    margin-bottom: 10px;
+justify-content: space-between;
+
+gap: 10px;
+
+margin-bottom: 10px;
+
+
 }
-
 
 .control-row label {
-    flex: 1;
-
-    font-size: 14px;
+font-size: 13px;
+font-weight: 600;
 }
-
 
 .control-row input[type="color"] {
-    width: 55px;
-    height: 32px;
+width: 50px;
+height: 30px;
 
-    padding: 2px;
 
-    border: 1px solid #aaa;
-    border-radius: 4px;
+padding: 1px;
 
-    cursor: pointer;
+border: 1px solid #aaa;
+border-radius: 4px;
+
+cursor: pointer;
+
+
 }
-
 
 .control-row input[type="file"] {
-    max-width: 180px;
+width: 180px;
 
-    font-size: 12px;
+
+font-size: 11px;
+
+
 }
-
 
 .control-row select {
-    min-width: 150px;
+min-width: 145px;
 
-    padding: 6px;
 
-    border: 1px solid #aaa;
-    border-radius: 4px;
+padding: 5px;
 
-    background: white;
+border: 1px solid #aaa;
+border-radius: 4px;
+
+background: white;
+
+
 }
-
-
-/* ============================================================
-   FILE NAME
-   ============================================================ */
-
-.file-name {
-    margin-top: 5px;
-
-    padding: 6px 8px;
-
-    background: #f5f5f5;
-
-    border-radius: 4px;
-
-    font-size: 12px;
-
-    color: #666;
-
-    overflow: hidden;
-
-    text-overflow: ellipsis;
-
-    white-space: nowrap;
-}
-
-
-/* ============================================================
-   BUTTON ROW
-   ============================================================ */
 
 .button-row {
-    display: flex;
+display: flex;
 
-    gap: 8px;
+
+gap: 8px;
+
+
 }
-
 
 .button-row button {
-    flex: 1;
+flex: 1;
 }
 
+/* ============================================================
+FILE NAME
+============================================================ */
+
+.file-name {
+margin-top: 6px;
+
+
+padding: 6px;
+
+background: #f5f5f5;
+
+border-radius: 4px;
+
+font-size: 11px;
+
+color: #666;
+
+word-break: break-all;
+
+
+}
 
 /* ============================================================
-   SLIDERS
-   ============================================================ */
+SLIDERS
+============================================================ */
 
 .slider-row {
-    display: flex;
+display: flex;
 
-    justify-content: space-between;
-    align-items: center;
 
-    margin-top: 12px;
-    margin-bottom: 5px;
+justify-content: space-between;
 
-    font-size: 14px;
+align-items: center;
+
+margin-top: 10px;
+margin-bottom: 5px;
+
+
 }
 
+.slider-row label {
+font-size: 13px;
+font-weight: 600;
+}
 
 .slider-row span {
-    min-width: 50px;
+min-width: 50px;
 
-    text-align: right;
 
-    font-family: monospace;
+text-align: right;
+
+font-family: monospace;
+
+font-size: 12px;
+
+
 }
-
 
 input[type="range"] {
-    width: 100%;
+width: 100%;
+
+
+margin: 0 0 8px 0;
+
+
 }
 
-
 /* ============================================================
-   CHECKBOX
-   ============================================================ */
+CHECKBOX
+============================================================ */
 
 .checkbox-row {
-    display: flex;
+display: flex;
 
-    align-items: center;
 
-    gap: 8px;
+align-items: center;
 
-    margin-bottom: 12px;
+gap: 8px;
+
+margin-bottom: 12px;
+
+
 }
-
 
 .checkbox-row label {
-    font-size: 14px;
-
-    cursor: pointer;
+font-size: 13px;
 }
 
-
 /* ============================================================
-   RESPONSIVE
-   ============================================================ */
+RESPONSIVE
+============================================================ */
 
 @media (max-width: 800px) {
 
-    .app-container {
-        height: auto;
-        min-height: 100vh;
 
-        flex-direction: column;
+.app-container {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr auto;
+}
 
-        overflow: auto;
-    }
+.control-panel {
+    width: 100%;
+    height: auto;
 
+    max-height: 45vh;
 
-    .canvas-area {
-        min-height: 60vh;
+    border-left: none;
+    border-top: 1px solid #ccc;
+}
 
-        padding: 10px;
-    }
-
-
-    .control-panel {
-        width: 100%;
-        height: auto;
-
-        border-left: none;
-        border-top: 1px solid #ccc;
-    }
+.canvas-area {
+    min-height: 55vh;
+}
 
 
-    #canvas {
-        max-height: 60vh;
-    }
 }
