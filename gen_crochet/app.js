@@ -2,7 +2,7 @@
 // CROCHET PATTERN GENERATOR
 // ============================================================
 
-let nx = 58;
+let nx = 60;
 let ny = 30;
 
 let backgroundColor = "#e2e922";
@@ -10,9 +10,57 @@ let backgroundColor = "#e2e922";
 let canvas;
 let ctx;
 
+
+// ============================================================
+// OBJECT LIBRARY
+// ============================================================
+//
+// uploadedObjects contains every PNG uploaded by the user.
+//
+// Each object looks like:
+//
+// {
+//     id: 0,
+//     name: "flower.png",
+//     image: Image
+// }
+//
+// ============================================================
+
+let uploadedObjects = [];
+
+let nextObjectId = 0;
+
+
+// ============================================================
+// PATTERN OBJECT INSTANCES
+// ============================================================
+//
+// flowers contains objects that have actually been placed
+// on the pattern.
+//
+// Each flower looks like:
+//
+// {
+//     objectId: 0,
+//     x: 0.5,
+//     y: 0.5,
+//     rotation: 0,
+//     scale: 1
+// }
+//
+// ============================================================
+
 let flowers = [];
 
 let selectedFlower = -1;
+
+let selectedObjectId = null;
+
+
+// ============================================================
+// OTHER STATE
+// ============================================================
 
 let showRunCounts = false;
 
@@ -20,16 +68,6 @@ let runDirection = "left";
 
 let discretizedPattern = null;
 
-let uploadedImage = null;
-
-
-/*
- * This controls whether we are currently looking
- * at the discretized crochet grid.
- *
- * false = editable PNG/object view
- * true  = discretized crochet grid
- */
 let isDiscretized = false;
 
 
@@ -99,7 +137,7 @@ ctx =
 
 startButton.addEventListener(
     "click",
-    () => {
+    async () => {
 
         nx =
             parseInt(
@@ -175,18 +213,26 @@ startButton.addEventListener(
 
 
         /*
-         * If a PNG was selected on the startup
-         * screen, load it now.
+         * Load every PNG selected during startup.
          */
         if (
             pngInput.files.length > 0
         ) {
 
-            loadPNG(
-                pngInput.files[0]
-            );
+            for (
+                const file of pngInput.files
+            ) {
+
+                await loadPNG(file);
+            }
         }
 
+
+        updateObjectDropdown();
+
+        updateControls();
+
+        updateDiscretizeButton();
 
         draw();
     }
@@ -211,10 +257,6 @@ function initializeCanvas() {
         );
 
 
-    /*
-     * The canvas is larger than the pattern itself
-     * so the row/column labels fit inside the canvas.
-     */
     canvas.width =
         patternWidth +
         LEFT_MARGIN +
@@ -253,13 +295,10 @@ backgroundColorControl.addEventListener(
             backgroundColorControl.value;
 
 
-        /*
-         * Changing the background invalidates
-         * the discretized representation.
-         */
         discretizedPattern = null;
 
         isDiscretized = false;
+
 
         updateDiscretizeButton();
 
@@ -280,18 +319,46 @@ const objectUpload =
 
 objectUpload.addEventListener(
     "change",
-    () => {
+    async () => {
 
         if (
             objectUpload.files.length === 0
         ) {
+
             return;
         }
 
 
-        loadPNG(
-            objectUpload.files[0]
-        );
+        /*
+         * IMPORTANT:
+         *
+         * We DO NOT clear uploadedObjects.
+         *
+         * Every newly uploaded PNG is appended
+         * to the existing object library.
+         */
+        for (
+            const file of objectUpload.files
+        ) {
+
+            await loadPNG(file);
+        }
+
+
+        updateObjectDropdown();
+
+        updateControls();
+
+        updateDiscretizeButton();
+
+        draw();
+
+
+        /*
+         * Reset the input so selecting the same file
+         * again will still trigger the change event.
+         */
+        objectUpload.value = "";
     }
 );
 
@@ -302,97 +369,269 @@ objectUpload.addEventListener(
 
 function loadPNG(file) {
 
+    return new Promise(
+        (resolve, reject) => {
+
+            if (
+                !file.type.includes("png")
+            ) {
+
+                alert(
+                    `"${file.name}" is not a PNG image.`
+                );
+
+                reject(
+                    new Error(
+                        "Invalid PNG file."
+                    )
+                );
+
+                return;
+            }
+
+
+            const reader =
+                new FileReader();
+
+
+            reader.onload =
+                function(event) {
+
+                    const img =
+                        new Image();
+
+
+                    img.onload =
+                        function() {
+
+                            /*
+                             * Create a permanent entry
+                             * in the object library.
+                             */
+                            const object = {
+
+                                id:
+                                    nextObjectId++,
+
+                                name:
+                                    file.name,
+
+                                image:
+                                    img
+                            };
+
+
+                            uploadedObjects.push(
+                                object
+                            );
+
+
+                            /*
+                             * Make the newly uploaded
+                             * image the selected image
+                             * in the dropdown.
+                             */
+                            selectedObjectId =
+                                object.id;
+
+
+                            document.getElementById(
+                                "uploadedFileName"
+                            ).textContent =
+                                `${uploadedObjects.length} PNG` +
+                                (
+                                    uploadedObjects.length === 1
+                                        ? ""
+                                        : "s"
+                                ) +
+                                " uploaded";
+
+
+                            updateObjectDropdown();
+
+
+                            resolve();
+                        };
+
+
+                    img.onerror =
+                        function() {
+
+                            reject(
+                                new Error(
+                                    "Could not load PNG."
+                                )
+                            );
+                        };
+
+
+                    img.src =
+                        event.target.result;
+                };
+
+
+            reader.onerror =
+                function() {
+
+                    reject(
+                        new Error(
+                            "Could not read PNG."
+                        )
+                    );
+                };
+
+
+            reader.readAsDataURL(file);
+        }
+    );
+}
+
+
+// ============================================================
+// OBJECT DROPDOWN
+// ============================================================
+
+const flowerSelect =
+    document.getElementById(
+        "flowerSelect"
+    );
+
+
+flowerSelect.addEventListener(
+    "change",
+    () => {
+
+        if (
+            flowerSelect.value === ""
+        ) {
+
+            selectedObjectId = null;
+
+            return;
+        }
+
+
+        selectedObjectId =
+            Number(
+                flowerSelect.value
+            );
+    }
+);
+
+
+// ============================================================
+// UPDATE OBJECT DROPDOWN
+// ============================================================
+
+function updateObjectDropdown() {
+
+    flowerSelect.innerHTML = "";
+
+
     if (
-        !file.type.includes("png")
+        uploadedObjects.length === 0
     ) {
 
-        alert(
-            "Please select a PNG image."
+        const option =
+            document.createElement(
+                "option"
+            );
+
+
+        option.value = "";
+
+        option.textContent =
+            "No PNGs uploaded";
+
+
+        flowerSelect.appendChild(
+            option
         );
+
+
+        flowerSelect.disabled = true;
 
         return;
     }
 
 
-    const reader =
-        new FileReader();
+    flowerSelect.disabled = false;
 
 
-    reader.onload =
-        function(event) {
+    for (
+        const object of uploadedObjects
+    ) {
 
-            const img =
-                new Image();
-
-
-            img.onload =
-                function() {
-
-                    uploadedImage =
-                        img;
+        const option =
+            document.createElement(
+                "option"
+            );
 
 
-                    document.getElementById(
-                        "uploadedFileName"
-                    ).textContent =
-                        file.name;
+        option.value =
+            String(object.id);
 
 
-                    /*
-                     * Loading a new PNG returns us
-                     * to editable mode.
-                     */
-                    discretizedPattern = null;
-
-                    isDiscretized = false;
+        option.textContent =
+            object.name;
 
 
-                    /*
-                     * Clear existing objects because
-                     * they belonged to the previous PNG.
-                     */
-                    flowers = [];
-
-                    selectedFlower = -1;
+        flowerSelect.appendChild(
+            option
+        );
+    }
 
 
-                    /*
-                     * Automatically create one object.
-                     */
-                    flowers.push(
-                        createFlower()
-                    );
+    /*
+     * Make sure the selected object still exists.
+     */
+    const selectedExists =
+        uploadedObjects.some(
+            object =>
+                object.id === selectedObjectId
+        );
 
 
-                    selectedFlower = 0;
+    if (
+        !selectedExists
+    ) {
+
+        selectedObjectId =
+            uploadedObjects[0].id;
+    }
 
 
-                    updateControls();
-
-                    updateDiscretizeButton();
-
-                    draw();
-                };
-
-
-            img.src =
-                event.target.result;
-        };
-
-
-    reader.readAsDataURL(file);
+    flowerSelect.value =
+        String(
+            selectedObjectId
+        );
 }
 
 
 // ============================================================
-// CREATE OBJECT
+// GET OBJECT BY ID
 // ============================================================
 
-function createFlower() {
+function getObjectById(id) {
+
+    return uploadedObjects.find(
+        object =>
+            object.id === id
+    );
+}
+
+
+// ============================================================
+// CREATE OBJECT INSTANCE
+// ============================================================
+
+function createFlower(
+    objectId
+) {
 
     return {
 
-        type: "uploaded",
+        objectId: objectId,
 
         x: 0.5,
 
@@ -406,7 +645,7 @@ function createFlower() {
 
 
 // ============================================================
-// ADD OBJECT
+// ADD OBJECT TO PATTERN
 // ============================================================
 
 const addFlowerButton =
@@ -419,7 +658,9 @@ addFlowerButton.addEventListener(
     "click",
     () => {
 
-        if (!uploadedImage) {
+        if (
+            uploadedObjects.length === 0
+        ) {
 
             alert(
                 "Please upload a PNG first."
@@ -429,8 +670,23 @@ addFlowerButton.addEventListener(
         }
 
 
+        if (
+            selectedObjectId === null
+        ) {
+
+            selectedObjectId =
+                uploadedObjects[0].id;
+        }
+
+
+        const newFlower =
+            createFlower(
+                selectedObjectId
+            );
+
+
         flowers.push(
-            createFlower()
+            newFlower
         );
 
 
@@ -438,10 +694,6 @@ addFlowerButton.addEventListener(
             flowers.length - 1;
 
 
-        /*
-         * Changing the object means the old
-         * discretization is no longer valid.
-         */
         discretizedPattern = null;
 
         isDiscretized = false;
@@ -457,7 +709,7 @@ addFlowerButton.addEventListener(
 
 
 // ============================================================
-// DELETE OBJECT
+// DELETE OBJECT FROM PATTERN
 // ============================================================
 
 const deleteFlowerButton =
@@ -540,7 +792,9 @@ const scaleSlider =
     );
 
 
+// ============================================================
 // X POSITION
+// ============================================================
 
 xSlider.addEventListener(
     "input",
@@ -549,6 +803,7 @@ xSlider.addEventListener(
         if (
             selectedFlower < 0
         ) {
+
             return;
         }
 
@@ -573,7 +828,9 @@ xSlider.addEventListener(
 );
 
 
+// ============================================================
 // Y POSITION
+// ============================================================
 
 ySlider.addEventListener(
     "input",
@@ -582,6 +839,7 @@ ySlider.addEventListener(
         if (
             selectedFlower < 0
         ) {
+
             return;
         }
 
@@ -606,7 +864,9 @@ ySlider.addEventListener(
 );
 
 
+// ============================================================
 // ROTATION
+// ============================================================
 
 rotationSlider.addEventListener(
     "input",
@@ -615,6 +875,7 @@ rotationSlider.addEventListener(
         if (
             selectedFlower < 0
         ) {
+
             return;
         }
 
@@ -639,7 +900,9 @@ rotationSlider.addEventListener(
 );
 
 
+// ============================================================
 // SCALE
+// ============================================================
 
 scaleSlider.addEventListener(
     "input",
@@ -648,6 +911,7 @@ scaleSlider.addEventListener(
         if (
             selectedFlower < 0
         ) {
+
             return;
         }
 
@@ -700,6 +964,7 @@ function updateControls() {
 
 
     if (disabled) {
+
         return;
     }
 
@@ -734,6 +999,7 @@ function updateValueDisplays() {
     if (
         selectedFlower < 0
     ) {
+
         return;
     }
 
@@ -808,6 +1074,7 @@ function updateDiscretizeButton() {
 function draw() {
 
     if (!ctx) {
+
         return;
     }
 
@@ -821,8 +1088,7 @@ function draw() {
 
 
     /*
-     * If we are viewing the discretized pattern,
-     * draw ONLY that representation.
+     * Discretized view.
      */
     if (
         isDiscretized &&
@@ -836,9 +1102,7 @@ function draw() {
 
 
     /*
-     * --------------------------------------------------------
-     * EDITABLE VIEW
-     * --------------------------------------------------------
+     * Editable view.
      */
 
     ctx.fillStyle =
@@ -854,7 +1118,7 @@ function draw() {
 
 
     /*
-     * Draw all objects.
+     * Draw every object instance.
      */
     for (
         let i = 0;
@@ -869,9 +1133,6 @@ function draw() {
     }
 
 
-    /*
-     * Draw grid.
-     */
     drawGrid();
 }
 
@@ -885,13 +1146,20 @@ function drawFlower(
     selected
 ) {
 
-    if (!uploadedImage) {
+    const object =
+        getObjectById(
+            flower.objectId
+        );
+
+
+    if (!object) {
+
         return;
     }
 
 
     const img =
-        uploadedImage;
+        object.image;
 
 
     const x =
@@ -952,7 +1220,8 @@ function drawFlower(
         ctx.strokeStyle =
             "red";
 
-        ctx.lineWidth = 3;
+        ctx.lineWidth =
+            3;
 
 
         ctx.strokeRect(
@@ -986,7 +1255,8 @@ function drawGrid() {
     ctx.strokeStyle =
         "rgba(0,0,0,0.35)";
 
-    ctx.lineWidth = 1;
+    ctx.lineWidth =
+        1;
 
     ctx.beginPath();
 
@@ -1052,7 +1322,7 @@ function drawGrid() {
 
 
 // ============================================================
-// DISCRETIZE BUTTON
+// DISCRETIZE / EDIT BUTTON
 // ============================================================
 
 document
@@ -1064,17 +1334,7 @@ document
         () => {
 
             /*
-             * ------------------------------------------------
-             * EDIT MODE
-             * ------------------------------------------------
-             *
-             * If currently showing the discretized pattern,
-             * simply return to the editable object view.
-             *
-             * IMPORTANT:
-             * We DO NOT delete discretizedPattern here.
-             * This allows the user to return to the exact
-             * same discretization later.
+             * Return to editable mode.
              */
             if (isDiscretized) {
 
@@ -1089,15 +1349,14 @@ document
 
 
             /*
-             * ------------------------------------------------
-             * DISCRETIZE MODE
-             * ------------------------------------------------
+             * Need at least one object.
              */
-
-            if (!uploadedImage) {
+            if (
+                flowers.length === 0
+            ) {
 
                 alert(
-                    "Please upload a PNG first."
+                    "Please add at least one object to the pattern."
                 );
 
                 return;
@@ -1130,12 +1389,6 @@ function discretizePattern() {
         );
 
 
-    /*
-     * IMPORTANT:
-     *
-     * The offscreen canvas represents ONLY the
-     * actual crochet pattern area.
-     */
     offscreen.width =
         patternWidth;
 
@@ -1148,11 +1401,8 @@ function discretizePattern() {
 
 
     /*
-     * --------------------------------------------------------
-     * ALWAYS WHITE BACKGROUND
-     * --------------------------------------------------------
+     * White discretization background.
      */
-
     offCtx.fillStyle =
         "white";
 
@@ -1166,17 +1416,26 @@ function discretizePattern() {
 
 
     /*
-     * --------------------------------------------------------
-     * RENDER OBJECTS
-     * --------------------------------------------------------
+     * Render every object.
      */
-
     for (
         const flower of flowers
     ) {
 
+        const object =
+            getObjectById(
+                flower.objectId
+            );
+
+
+        if (!object) {
+
+            continue;
+        }
+
+
         const img =
-            uploadedImage;
+            object.image;
 
 
         const x =
@@ -1260,12 +1519,6 @@ function discretizePattern() {
         );
 
 
-    /*
-     * --------------------------------------------------------
-     * WHITE IS THE DISCRETIZATION BACKGROUND
-     * --------------------------------------------------------
-     */
-
     const bg = {
         r: 255,
         g: 255,
@@ -1274,11 +1527,8 @@ function discretizePattern() {
 
 
     /*
-     * --------------------------------------------------------
-     * DETERMINE CELL VALUES
-     * --------------------------------------------------------
+     * Determine each cell.
      */
-
     for (
         let row = 0;
         row < ny;
@@ -1348,13 +1598,19 @@ function discretizePattern() {
                         imageData.data[index];
 
                     const g =
-                        imageData.data[index + 1];
+                        imageData.data[
+                            index + 1
+                        ];
 
                     const b =
-                        imageData.data[index + 2];
+                        imageData.data[
+                            index + 2
+                        ];
 
                     const a =
-                        imageData.data[index + 3];
+                        imageData.data[
+                            index + 3
+                        ];
 
 
                     /*
@@ -1419,24 +1675,13 @@ function discretizePattern() {
 
 
     /*
-     * ========================================================
-     * IMPORTANT — DO NOT FLIP THE PATTERN
-     * ========================================================
+     * IMPORTANT:
      *
-     * The previous version contained:
+     * DO NOT reverse the rows.
      *
-     *     pattern.reverse();
-     *
-     * That was the source of the Y-direction flip.
-     *
-     * We intentionally DO NOT reverse the rows here.
-     *
-     * The discretized pattern therefore has the exact same
-     * top-to-bottom orientation as the PNG/object view.
-     * ========================================================
+     * This preserves the original PNG's
+     * top-to-bottom orientation.
      */
-
-
     return pattern;
 }
 
@@ -1455,11 +1700,8 @@ function drawDiscretizedPattern() {
 
 
     /*
-     * --------------------------------------------------------
-     * WHITE BACKGROUND
-     * --------------------------------------------------------
+     * White background.
      */
-
     ctx.fillStyle =
         "white";
 
@@ -1473,11 +1715,8 @@ function drawDiscretizedPattern() {
 
 
     /*
-     * --------------------------------------------------------
-     * BLACK CELLS
-     * --------------------------------------------------------
+     * Black cells.
      */
-
     for (
         let row = 0;
         row < ny;
@@ -1516,24 +1755,13 @@ function drawDiscretizedPattern() {
 
 
     /*
-     * --------------------------------------------------------
-     * GRAY GRIDLINES
-     * --------------------------------------------------------
-     *
-     * These are intentionally gray rather than white.
-     *
-     * This makes the grid visible on BOTH:
-     *
-     *   - black cells
-     *   - white cells
-     *
-     * --------------------------------------------------------
+     * Gray gridlines.
      */
-
     ctx.strokeStyle =
         "#999999";
 
-    ctx.lineWidth = 1;
+    ctx.lineWidth =
+        1;
 
     ctx.beginPath();
 
@@ -1598,11 +1826,8 @@ function drawDiscretizedPattern() {
 
 
     /*
-     * --------------------------------------------------------
-     * NUMBER STYLE
-     * --------------------------------------------------------
+     * Number style.
      */
-
     ctx.fillStyle =
         "black";
 
@@ -1611,11 +1836,8 @@ function drawDiscretizedPattern() {
 
 
     /*
-     * --------------------------------------------------------
-     * ROW NUMBERS — LEFT AND RIGHT
-     * --------------------------------------------------------
+     * Row numbers.
      */
-
     ctx.textBaseline =
         "middle";
 
@@ -1633,7 +1855,7 @@ function drawDiscretizedPattern() {
 
 
         /*
-         * LEFT
+         * Left.
          */
         ctx.textAlign =
             "right";
@@ -1650,7 +1872,7 @@ function drawDiscretizedPattern() {
 
 
         /*
-         * RIGHT
+         * Right.
          */
         ctx.textAlign =
             "left";
@@ -1670,11 +1892,8 @@ function drawDiscretizedPattern() {
 
 
     /*
-     * --------------------------------------------------------
-     * COLUMN NUMBERS — TOP AND BOTTOM
-     * --------------------------------------------------------
+     * Column numbers.
      */
-
     for (
         let col = 0;
         col < nx;
@@ -1688,7 +1907,7 @@ function drawDiscretizedPattern() {
 
 
         /*
-         * TOP
+         * Top.
          */
         ctx.textAlign =
             "center";
@@ -1708,7 +1927,7 @@ function drawDiscretizedPattern() {
 
 
         /*
-         * BOTTOM
+         * Bottom.
          */
         ctx.textBaseline =
             "top";
@@ -1728,12 +1947,11 @@ function drawDiscretizedPattern() {
 
 
     /*
-     * --------------------------------------------------------
-     * RUN COUNTS
-     * --------------------------------------------------------
+     * Run counts.
      */
-
-    if (showRunCounts) {
+    if (
+        showRunCounts
+    ) {
 
         drawRunCounts();
     }
@@ -1813,9 +2031,6 @@ function drawRunCounts() {
         "middle";
 
 
-    /*
-     * Process every row.
-     */
     for (
         let row = 0;
         row < ny;
@@ -1823,8 +2038,6 @@ function drawRunCounts() {
     ) {
 
         let col = 0;
-
-        let runNumber = 0;
 
 
         while (
@@ -1862,45 +2075,9 @@ function drawRunCounts() {
 
 
             /*
-             * ------------------------------------------------
-             * ONE-CELL RUN WITH "BOTH"
-             * ------------------------------------------------
-             *
-             * Only draw the number once because left and
-             * right would be the exact same cell.
+             * LEFT
              */
             if (
-                runDirection === "both" &&
-                runLength === 1
-            ) {
-
-                const x =
-                    patternX +
-                    col * cellWidth +
-                    cellWidth / 2;
-
-
-                ctx.textAlign =
-                    "center";
-
-
-                ctx.fillText(
-
-                    String(runLength),
-
-                    x,
-                    y
-                );
-            }
-
-
-            /*
-             * ------------------------------------------------
-             * LEFT
-             * ------------------------------------------------
-             */
-
-            else if (
                 runDirection === "left"
             ) {
 
@@ -1925,11 +2102,8 @@ function drawRunCounts() {
 
 
             /*
-             * ------------------------------------------------
              * RIGHT
-             * ------------------------------------------------
              */
-
             else if (
                 runDirection === "right"
             ) {
@@ -1956,85 +2130,11 @@ function drawRunCounts() {
 
 
             /*
-             * ------------------------------------------------
-             * ALTERNATING LEFT FIRST
-             * ------------------------------------------------
-             */
-
-            else if (
-                runDirection ===
-                "alternating-left"
-            ) {
-
-                const displayCol =
-                    runNumber % 2 === 0
-                        ? col
-                        : end - 1;
-
-
-                const x =
-                    patternX +
-                    displayCol * cellWidth +
-                    cellWidth / 2;
-
-
-                ctx.textAlign =
-                    "center";
-
-
-                ctx.fillText(
-
-                    String(runLength),
-
-                    x,
-                    y
-                );
-            }
-
-
-            /*
-             * ------------------------------------------------
-             * ALTERNATING RIGHT FIRST
-             * ------------------------------------------------
-             */
-
-            else if (
-                runDirection ===
-                "alternating-right"
-            ) {
-
-                const displayCol =
-                    runNumber % 2 === 0
-                        ? end - 1
-                        : col;
-
-
-                const x =
-                    patternX +
-                    displayCol * cellWidth +
-                    cellWidth / 2;
-
-
-                ctx.textAlign =
-                    "center";
-
-
-                ctx.fillText(
-
-                    String(runLength),
-
-                    x,
-                    y
-                );
-            }
-
-
-            /*
-             * ------------------------------------------------
              * BOTH
-             * ------------------------------------------------
              *
-             * For runs >= 2, put the number at both ends.
+             * For a one-cell run, only write the
+             * number once because both ends are
+             * the same cell.
              */
             else if (
                 runDirection === "both"
@@ -2066,19 +2166,22 @@ function drawRunCounts() {
                 );
 
 
-                ctx.fillText(
+                if (
+                    runLength > 1
+                ) {
 
-                    String(runLength),
+                    ctx.fillText(
 
-                    rightX,
-                    y
-                );
+                        String(runLength),
+
+                        rightX,
+                        y
+                    );
+                }
             }
 
 
             col = end;
-
-            runNumber++;
         }
     }
 }
@@ -2136,14 +2239,9 @@ canvas.addEventListener(
     "mousedown",
     (event) => {
 
-        /*
-         * Objects cannot be dragged while viewing
-         * the discretized grid.
-         */
         if (
             isDiscretized ||
-            selectedFlower < 0 ||
-            !uploadedImage
+            selectedFlower < 0
         ) {
 
             return;
@@ -2180,9 +2278,25 @@ canvas.addEventListener(
             mouse.y - fy;
 
 
+        const object =
+            getObjectById(
+                flower.objectId
+            );
+
+
+        if (!object) {
+
+            return;
+        }
+
+
         const hitRadius =
-            100 *
-            flower.scale;
+            Math.max(
+                object.image.width,
+                object.image.height
+            ) *
+            flower.scale /
+            2;
 
 
         if (
@@ -2260,9 +2374,6 @@ canvas.addEventListener(
             );
 
 
-        /*
-         * The current discretization is now stale.
-         */
         discretizedPattern = null;
 
         isDiscretized = false;
@@ -2304,8 +2415,7 @@ canvas.addEventListener(
     (event) => {
 
         if (
-            isDiscretized ||
-            !uploadedImage
+            isDiscretized
         ) {
 
             return;
@@ -2324,14 +2434,30 @@ canvas.addEventListener(
             Infinity;
 
 
+        /*
+         * Search backwards so that objects
+         * drawn later are selected first.
+         */
         for (
-            let i = 0;
-            i < flowers.length;
-            i++
+            let i = flowers.length - 1;
+            i >= 0;
+            i--
         ) {
 
             const flower =
                 flowers[i];
+
+
+            const object =
+                getObjectById(
+                    flower.objectId
+                );
+
+
+            if (!object) {
+
+                continue;
+            }
 
 
             const fx =
@@ -2362,8 +2488,12 @@ canvas.addEventListener(
 
 
             const hitRadius =
-                100 *
-                flower.scale;
+                Math.max(
+                    object.image.width,
+                    object.image.height
+                ) *
+                flower.scale /
+                2;
 
 
             if (
@@ -2467,33 +2597,4 @@ function degToRad(
         Math.PI /
         180
     );
-}
-
-
-function hexToRgb(hex) {
-
-    hex =
-        hex.replace(
-            "#",
-            ""
-        );
-
-
-    return {
-
-        r: parseInt(
-            hex.substring(0, 2),
-            16
-        ),
-
-        g: parseInt(
-            hex.substring(2, 4),
-            16
-        ),
-
-        b: parseInt(
-            hex.substring(4, 6),
-            16
-        )
-    };
 }

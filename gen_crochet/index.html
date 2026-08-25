@@ -83,13 +83,15 @@
                     type="file"
                     id="pngInput"
                     accept="image/png"
+                    multiple
                 >
 
             </div>
 
 
             <p class="setup-note">
-                You can also upload a PNG later from the controls.
+                You can upload multiple PNGs. They can be added to
+                the pattern individually after creating the pattern.
             </p>
 
 
@@ -186,12 +188,12 @@
 
 
             <!-- =================================================
-                 PNG OBJECT
+                 PNG OBJECT LIBRARY
                  ================================================= -->
 
             <section class="control-section">
 
-                <h3>Object</h3>
+                <h3>Objects</h3>
 
                 <div class="control-row">
 
@@ -203,6 +205,7 @@
                         type="file"
                         id="objectUpload"
                         accept="image/png"
+                        multiple
                     >
 
                 </div>
@@ -212,19 +215,9 @@
                     id="uploadedFileName"
                     class="file-name"
                 >
-                    No PNG selected
+                    No PNGs uploaded
                 </div>
 
-            </section>
-
-
-            <!-- =================================================
-                 OBJECT SELECTION
-                 ================================================= -->
-
-            <section class="control-section">
-
-                <h3>Objects</h3>
 
                 <div class="control-row">
 
@@ -233,11 +226,6 @@
                     </label>
 
                     <select id="flowerSelect">
-
-                        <option value="uploaded">
-                            Uploaded PNG
-                        </option>
-
                     </select>
 
                 </div>
