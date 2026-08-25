@@ -25,7 +25,11 @@
             <h2>Pattern Settings</h2>
 
             <div class="setup-row">
-                <label for="nxInput">Number of columns (nx)</label>
+
+                <label for="nxInput">
+                    Number of columns (nx)
+                </label>
+
                 <input
                     type="number"
                     id="nxInput"
@@ -33,10 +37,16 @@
                     max="500"
                     value="58"
                 >
+
             </div>
 
+
             <div class="setup-row">
-                <label for="nyInput">Number of rows (ny)</label>
+
+                <label for="nyInput">
+                    Number of rows (ny)
+                </label>
+
                 <input
                     type="number"
                     id="nyInput"
@@ -44,9 +54,12 @@
                     max="500"
                     value="30"
                 >
+
             </div>
 
+
             <div class="setup-row">
+
                 <label for="backgroundColorInput">
                     Background color
                 </label>
@@ -56,9 +69,12 @@
                     id="backgroundColorInput"
                     value="#e2e922"
                 >
+
             </div>
 
+
             <div class="setup-row">
+
                 <label for="pngInput">
                     PNG object
                 </label>
@@ -68,13 +84,19 @@
                     id="pngInput"
                     accept="image/png"
                 >
+
             </div>
+
 
             <p class="setup-note">
                 You can also upload a PNG later from the controls.
             </p>
 
-            <button id="startButton" class="primary-button">
+
+            <button
+                id="startButton"
+                class="primary-button"
+            >
                 Create Pattern
             </button>
 
@@ -87,7 +109,10 @@
          MAIN APPLICATION
          ===================================================== -->
 
-    <div id="app" class="app-container hidden">
+    <div
+        id="app"
+        class="app-container hidden"
+    >
 
         <!-- =================================================
              CANVAS AREA
@@ -113,23 +138,35 @@
             <h2>Pattern Controls</h2>
 
 
-            <!-- ---------------------------------------------
+            <!-- =================================================
                  PATTERN SETTINGS
-                 --------------------------------------------- -->
+                 ================================================= -->
 
             <section class="control-section">
 
                 <h3>Pattern</h3>
 
                 <div class="info-row">
+
                     <span>Columns:</span>
-                    <strong id="nxDisplay">58</strong>
+
+                    <strong id="nxDisplay">
+                        58
+                    </strong>
+
                 </div>
 
+
                 <div class="info-row">
+
                     <span>Rows:</span>
-                    <strong id="nyDisplay">30</strong>
+
+                    <strong id="nyDisplay">
+                        30
+                    </strong>
+
                 </div>
+
 
                 <div class="control-row">
 
@@ -148,9 +185,9 @@
             </section>
 
 
-            <!-- ---------------------------------------------
+            <!-- =================================================
                  PNG OBJECT
-                 --------------------------------------------- -->
+                 ================================================= -->
 
             <section class="control-section">
 
@@ -170,6 +207,7 @@
 
                 </div>
 
+
                 <div
                     id="uploadedFileName"
                     class="file-name"
@@ -180,9 +218,9 @@
             </section>
 
 
-            <!-- ---------------------------------------------
+            <!-- =================================================
                  OBJECT SELECTION
-                 --------------------------------------------- -->
+                 ================================================= -->
 
             <section class="control-section">
 
@@ -195,12 +233,15 @@
                     </label>
 
                     <select id="flowerSelect">
+
                         <option value="uploaded">
                             Uploaded PNG
                         </option>
+
                     </select>
 
                 </div>
+
 
                 <div class="button-row">
 
@@ -220,13 +261,14 @@
             </section>
 
 
-            <!-- ---------------------------------------------
+            <!-- =================================================
                  POSITION
-                 --------------------------------------------- -->
+                 ================================================= -->
 
             <section class="control-section">
 
                 <h3>Position</h3>
+
 
                 <div class="slider-row">
 
@@ -239,6 +281,7 @@
                     </span>
 
                 </div>
+
 
                 <input
                     type="range"
@@ -263,6 +306,7 @@
 
                 </div>
 
+
                 <input
                     type="range"
                     id="yPosition"
@@ -276,13 +320,14 @@
             </section>
 
 
-            <!-- ---------------------------------------------
+            <!-- =================================================
                  ROTATION / SCALE
-                 --------------------------------------------- -->
+                 ================================================= -->
 
             <section class="control-section">
 
                 <h3>Transform</h3>
+
 
                 <div class="slider-row">
 
@@ -295,6 +340,7 @@
                     </span>
 
                 </div>
+
 
                 <input
                     type="range"
@@ -319,6 +365,7 @@
 
                 </div>
 
+
                 <input
                     type="range"
                     id="scale"
@@ -332,13 +379,14 @@
             </section>
 
 
-            <!-- ---------------------------------------------
+            <!-- =================================================
                  RUN COUNTS
-                 --------------------------------------------- -->
+                 ================================================= -->
 
             <section class="control-section">
 
                 <h3>Run Counts</h3>
+
 
                 <div class="checkbox-row">
 
@@ -378,6 +426,10 @@
                             Alternating Right First
                         </option>
 
+                        <option value="both">
+                            Both
+                        </option>
+
                     </select>
 
                 </div>
@@ -385,9 +437,9 @@
             </section>
 
 
-            <!-- ---------------------------------------------
+            <!-- =================================================
                  DISCRETIZE
-                 --------------------------------------------- -->
+                 ================================================= -->
 
             <section class="control-section">
 
