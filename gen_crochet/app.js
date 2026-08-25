@@ -1,14 +1,8 @@
 // ============================================================
 // CROCHET PATTERN GENERATOR
-// SVG VECTOR DISCRETIZATION VERSION
 // ============================================================
 
-
-// ============================================================
-// GLOBAL VARIABLES
-// ============================================================
-
-let nx = 58;
+let nx = 60;
 let ny = 30;
 
 let backgroundColor = "#e2e922";
@@ -16,16 +10,57 @@ let backgroundColor = "#e2e922";
 let canvas;
 let ctx;
 
-let patternSVG;
-let svgContainer;
 
-let flowers = [];
+// ============================================================
+// OBJECT LIBRARY
+// ============================================================
+//
+// uploadedObjects contains every PNG uploaded by the user.
+//
+// Each object looks like:
+//
+// {
+//     id: 0,
+//     name: "flower.png",
+//     image: Image
+// }
+//
+// ============================================================
 
 let uploadedObjects = [];
 
+let nextObjectId = 0;
+
+
+// ============================================================
+// PATTERN OBJECT INSTANCES
+// ============================================================
+//
+// flowers contains objects that have actually been placed
+// on the pattern.
+//
+// Each flower looks like:
+//
+// {
+//     objectId: 0,
+//     x: 0.5,
+//     y: 0.5,
+//     rotation: 0,
+//     scale: 1
+// }
+//
+// ============================================================
+
+let flowers = [];
+
 let selectedFlower = -1;
 
-let selectedObject = -1;
+let selectedObjectId = null;
+
+
+// ============================================================
+// OTHER STATE
+// ============================================================
 
 let showRunCounts = false;
 
@@ -36,21 +71,17 @@ let discretizedPattern = null;
 let isDiscretized = false;
 
 
-// SVG zoom
-let svgZoom = 1.0;
-
-
 // ============================================================
 // CANVAS LAYOUT
 // ============================================================
 
 const PATTERN_WIDTH = 1200;
 
-const LEFT_MARGIN = 55;
-const RIGHT_MARGIN = 55;
+const LEFT_MARGIN = 45;
+const RIGHT_MARGIN = 45;
 
-const TOP_MARGIN = 45;
-const BOTTOM_MARGIN = 45;
+const TOP_MARGIN = 30;
+const BOTTOM_MARGIN = 30;
 
 let patternWidth = PATTERN_WIDTH;
 
@@ -81,7 +112,9 @@ const nyInput =
     document.getElementById("nyInput");
 
 const backgroundColorInput =
-    document.getElementById("backgroundColorInput");
+    document.getElementById(
+        "backgroundColorInput"
+    );
 
 const pngInput =
     document.getElementById("pngInput");
@@ -97,12 +130,6 @@ canvas =
 ctx =
     canvas.getContext("2d");
 
-patternSVG =
-    document.getElementById("patternSVG");
-
-svgContainer =
-    document.getElementById("svgContainer");
-
 
 // ============================================================
 // START APPLICATION
@@ -110,7 +137,7 @@ svgContainer =
 
 startButton.addEventListener(
     "click",
-    () => {
+    async () => {
 
         nx =
             parseInt(
@@ -153,15 +180,20 @@ startButton.addEventListener(
 
 
         nx = Math.round(nx);
+
         ny = Math.round(ny);
 
 
         initializeCanvas();
 
 
-        setupScreen.classList.add("hidden");
+        setupScreen.classList.add(
+            "hidden"
+        );
 
-        app.classList.remove("hidden");
+        app.classList.remove(
+            "hidden"
+        );
 
 
         document.getElementById(
@@ -176,25 +208,27 @@ startButton.addEventListener(
 
         document.getElementById(
             "backgroundColor"
-        ).value = backgroundColor;
+        ).value =
+            backgroundColor;
 
 
         /*
-         * Load every PNG selected on the startup screen.
+         * Load every PNG selected during startup.
          */
         if (
             pngInput.files.length > 0
         ) {
 
-            loadMultiplePNGs(
-                Array.from(
-                    pngInput.files
-                )
-            );
+            for (
+                const file of pngInput.files
+            ) {
+
+                await loadPNG(file);
+            }
         }
 
 
-        updateObjectSelect();
+        updateObjectDropdown();
 
         updateControls();
 
@@ -240,15 +274,6 @@ function initializeCanvas() {
 
     patternY =
         TOP_MARGIN;
-
-
-    /*
-     * SVG uses the exact same coordinate system.
-     */
-    patternSVG.setAttribute(
-        "viewBox",
-        `0 0 ${canvas.width} ${canvas.height}`
-    );
 }
 
 
@@ -270,7 +295,12 @@ backgroundColorControl.addEventListener(
             backgroundColorControl.value;
 
 
-        invalidatePattern();
+        discretizedPattern = null;
+
+        isDiscretized = false;
+
+
+        updateDiscretizeButton();
 
         draw();
     }
@@ -289,152 +319,213 @@ const objectUpload =
 
 objectUpload.addEventListener(
     "change",
-    () => {
+    async () => {
 
         if (
             objectUpload.files.length === 0
         ) {
+
             return;
         }
 
 
-        loadMultiplePNGs(
-            Array.from(
-                objectUpload.files
-            )
-        );
+        /*
+         * IMPORTANT:
+         *
+         * We DO NOT clear uploadedObjects.
+         *
+         * Every newly uploaded PNG is appended
+         * to the existing object library.
+         */
+        for (
+            const file of objectUpload.files
+        ) {
+
+            await loadPNG(file);
+        }
 
 
+        updateObjectDropdown();
+
+        updateControls();
+
+        updateDiscretizeButton();
+
+        draw();
+
+
+        /*
+         * Reset the input so selecting the same file
+         * again will still trigger the change event.
+         */
         objectUpload.value = "";
     }
 );
 
 
 // ============================================================
-// LOAD MULTIPLE PNGS
+// LOAD PNG
 // ============================================================
 
-function loadMultiplePNGs(files) {
+function loadPNG(file) {
 
-    const validFiles =
-        files.filter(
-            file =>
-                file.type === "image/png"
-        );
+    return new Promise(
+        (resolve, reject) => {
 
+            if (
+                !file.type.includes("png")
+            ) {
 
-    if (
-        validFiles.length === 0
-    ) {
+                alert(
+                    `"${file.name}" is not a PNG image.`
+                );
 
-        alert(
-            "Please select one or more PNG images."
-        );
+                reject(
+                    new Error(
+                        "Invalid PNG file."
+                    )
+                );
 
-        return;
-    }
-
-
-    let loadedCount = 0;
-
-
-    for (
-        const file of validFiles
-    ) {
-
-        const reader =
-            new FileReader();
+                return;
+            }
 
 
-        reader.onload =
-            function(event) {
-
-                const img =
-                    new Image();
+            const reader =
+                new FileReader();
 
 
-                img.onload =
-                    function() {
+            reader.onload =
+                function(event) {
 
-                        uploadedObjects.push({
-
-                            name:
-                                file.name,
-
-                            image:
-                                img
-
-                        });
+                    const img =
+                        new Image();
 
 
-                        loadedCount++;
+                    img.onload =
+                        function() {
+
+                            /*
+                             * Create a permanent entry
+                             * in the object library.
+                             */
+                            const object = {
+
+                                id:
+                                    nextObjectId++,
+
+                                name:
+                                    file.name,
+
+                                image:
+                                    img
+                            };
 
 
-                        if (
-                            loadedCount ===
-                            validFiles.length
-                        ) {
+                            uploadedObjects.push(
+                                object
+                            );
+
+
+                            /*
+                             * Make the newly uploaded
+                             * image the selected image
+                             * in the dropdown.
+                             */
+                            selectedObjectId =
+                                object.id;
+
 
                             document.getElementById(
                                 "uploadedFileName"
                             ).textContent =
-                                `${uploadedObjects.length} PNG object(s) loaded`;
+                                `${uploadedObjects.length} PNG` +
+                                (
+                                    uploadedObjects.length === 1
+                                        ? ""
+                                        : "s"
+                                ) +
+                                " uploaded";
 
 
-                            updateObjectSelect();
-
-                            draw();
-                        }
-                    };
+                            updateObjectDropdown();
 
 
-                img.src =
-                    event.target.result;
-            };
+                            resolve();
+                        };
 
 
-        reader.readAsDataURL(file);
-    }
+                    img.onerror =
+                        function() {
+
+                            reject(
+                                new Error(
+                                    "Could not load PNG."
+                                )
+                            );
+                        };
+
+
+                    img.src =
+                        event.target.result;
+                };
+
+
+            reader.onerror =
+                function() {
+
+                    reject(
+                        new Error(
+                            "Could not read PNG."
+                        )
+                    );
+                };
+
+
+            reader.readAsDataURL(file);
+        }
+    );
 }
 
 
 // ============================================================
-// OBJECT SELECT
+// OBJECT DROPDOWN
 // ============================================================
 
-const objectSelect =
+const flowerSelect =
     document.getElementById(
-        "objectSelect"
+        "flowerSelect"
     );
 
 
-objectSelect.addEventListener(
+flowerSelect.addEventListener(
     "change",
     () => {
 
-        selectedObject =
-            parseInt(
-                objectSelect.value
-            );
-
-
         if (
-            Number.isNaN(selectedObject)
+            flowerSelect.value === ""
         ) {
 
-            selectedObject = -1;
+            selectedObjectId = null;
+
+            return;
         }
+
+
+        selectedObjectId =
+            Number(
+                flowerSelect.value
+            );
     }
 );
 
 
 // ============================================================
-// UPDATE OBJECT SELECT
+// UPDATE OBJECT DROPDOWN
 // ============================================================
 
-function updateObjectSelect() {
+function updateObjectDropdown() {
 
-    objectSelect.innerHTML = "";
+    flowerSelect.innerHTML = "";
 
 
     if (
@@ -446,25 +537,29 @@ function updateObjectSelect() {
                 "option"
             );
 
+
         option.value = "";
 
         option.textContent =
-            "No objects uploaded";
+            "No PNGs uploaded";
 
-        objectSelect.appendChild(
+
+        flowerSelect.appendChild(
             option
         );
 
-        selectedObject = -1;
+
+        flowerSelect.disabled = true;
 
         return;
     }
 
 
+    flowerSelect.disabled = false;
+
+
     for (
-        let i = 0;
-        i < uploadedObjects.length;
-        i++
+        const object of uploadedObjects
     ) {
 
         const option =
@@ -473,45 +568,70 @@ function updateObjectSelect() {
             );
 
 
-        option.value = i;
+        option.value =
+            String(object.id);
+
 
         option.textContent =
-            `${i + 1}: ${uploadedObjects[i].name}`;
+            object.name;
 
 
-        objectSelect.appendChild(
+        flowerSelect.appendChild(
             option
         );
     }
 
 
+    /*
+     * Make sure the selected object still exists.
+     */
+    const selectedExists =
+        uploadedObjects.some(
+            object =>
+                object.id === selectedObjectId
+        );
+
+
     if (
-        selectedObject < 0 ||
-        selectedObject >=
-            uploadedObjects.length
+        !selectedExists
     ) {
 
-        selectedObject = 0;
+        selectedObjectId =
+            uploadedObjects[0].id;
     }
 
 
-    objectSelect.value =
-        selectedObject;
+    flowerSelect.value =
+        String(
+            selectedObjectId
+        );
 }
 
 
 // ============================================================
-// CREATE OBJECT
+// GET OBJECT BY ID
+// ============================================================
+
+function getObjectById(id) {
+
+    return uploadedObjects.find(
+        object =>
+            object.id === id
+    );
+}
+
+
+// ============================================================
+// CREATE OBJECT INSTANCE
 // ============================================================
 
 function createFlower(
-    objectIndex
+    objectId
 ) {
 
     return {
 
-        objectIndex:
-            objectIndex,
+        objectId: objectId,
 
         x: 0.5,
 
@@ -525,7 +645,7 @@ function createFlower(
 
 
 // ============================================================
-// ADD OBJECT
+// ADD OBJECT TO PATTERN
 // ============================================================
 
 const addFlowerButton =
@@ -551,17 +671,22 @@ addFlowerButton.addEventListener(
 
 
         if (
-            selectedObject < 0
+            selectedObjectId === null
         ) {
 
-            selectedObject = 0;
+            selectedObjectId =
+                uploadedObjects[0].id;
         }
 
 
-        flowers.push(
+        const newFlower =
             createFlower(
-                selectedObject
-            )
+                selectedObjectId
+            );
+
+
+        flowers.push(
+            newFlower
         );
 
 
@@ -569,10 +694,14 @@ addFlowerButton.addEventListener(
             flowers.length - 1;
 
 
-        invalidatePattern();
+        discretizedPattern = null;
+
+        isDiscretized = false;
 
 
         updateControls();
+
+        updateDiscretizeButton();
 
         draw();
     }
@@ -580,7 +709,7 @@ addFlowerButton.addEventListener(
 
 
 // ============================================================
-// DELETE OBJECT
+// DELETE OBJECT FROM PATTERN
 // ============================================================
 
 const deleteFlowerButton =
@@ -624,10 +753,14 @@ deleteFlowerButton.addEventListener(
         }
 
 
-        invalidatePattern();
+        discretizedPattern = null;
+
+        isDiscretized = false;
 
 
         updateControls();
+
+        updateDiscretizeButton();
 
         draw();
     }
@@ -659,7 +792,9 @@ const scaleSlider =
     );
 
 
-// X
+// ============================================================
+// X POSITION
+// ============================================================
 
 xSlider.addEventListener(
     "input",
@@ -668,6 +803,7 @@ xSlider.addEventListener(
         if (
             selectedFlower < 0
         ) {
+
             return;
         }
 
@@ -678,16 +814,23 @@ xSlider.addEventListener(
             );
 
 
-        invalidatePattern();
+        discretizedPattern = null;
+
+        isDiscretized = false;
+
 
         updateValueDisplays();
+
+        updateDiscretizeButton();
 
         draw();
     }
 );
 
 
-// Y
+// ============================================================
+// Y POSITION
+// ============================================================
 
 ySlider.addEventListener(
     "input",
@@ -696,6 +839,7 @@ ySlider.addEventListener(
         if (
             selectedFlower < 0
         ) {
+
             return;
         }
 
@@ -706,16 +850,23 @@ ySlider.addEventListener(
             );
 
 
-        invalidatePattern();
+        discretizedPattern = null;
+
+        isDiscretized = false;
+
 
         updateValueDisplays();
+
+        updateDiscretizeButton();
 
         draw();
     }
 );
 
 
+// ============================================================
 // ROTATION
+// ============================================================
 
 rotationSlider.addEventListener(
     "input",
@@ -724,6 +875,7 @@ rotationSlider.addEventListener(
         if (
             selectedFlower < 0
         ) {
+
             return;
         }
 
@@ -734,16 +886,23 @@ rotationSlider.addEventListener(
             );
 
 
-        invalidatePattern();
+        discretizedPattern = null;
+
+        isDiscretized = false;
+
 
         updateValueDisplays();
+
+        updateDiscretizeButton();
 
         draw();
     }
 );
 
 
+// ============================================================
 // SCALE
+// ============================================================
 
 scaleSlider.addEventListener(
     "input",
@@ -752,6 +911,7 @@ scaleSlider.addEventListener(
         if (
             selectedFlower < 0
         ) {
+
             return;
         }
 
@@ -762,9 +922,14 @@ scaleSlider.addEventListener(
             );
 
 
-        invalidatePattern();
+        discretizedPattern = null;
+
+        isDiscretized = false;
+
 
         updateValueDisplays();
+
+        updateDiscretizeButton();
 
         draw();
     }
@@ -798,9 +963,7 @@ function updateControls() {
         disabled;
 
 
-    if (
-        disabled
-    ) {
+    if (disabled) {
 
         return;
     }
@@ -880,103 +1043,25 @@ function updateValueDisplays() {
 
 
 // ============================================================
-// INVALIDATE DISCRETIZATION
-// ============================================================
-
-function invalidatePattern() {
-
-    discretizedPattern = null;
-
-    isDiscretized = false;
-
-    svgZoom = 1.0;
-
-    updateDiscretizeButton();
-
-    updateZoomControls();
-}
-
-
-// ============================================================
-// DISCRETIZE BUTTON
-// ============================================================
-
-const discretizeButton =
-    document.getElementById(
-        "discretizePattern"
-    );
-
-
-discretizeButton.addEventListener(
-    "click",
-    () => {
-
-        /*
-         * If already viewing SVG:
-         * return to editable canvas.
-         */
-        if (
-            isDiscretized
-        ) {
-
-            isDiscretized = false;
-
-            updateDiscretizeButton();
-
-            updateZoomControls();
-
-            draw();
-
-            return;
-        }
-
-
-        if (
-            flowers.length === 0
-        ) {
-
-            alert(
-                "Please add at least one object to the pattern."
-            );
-
-            return;
-        }
-
-
-        discretizedPattern =
-            discretizePattern();
-
-
-        isDiscretized = true;
-
-        svgZoom = 1.0;
-
-
-        updateDiscretizeButton();
-
-        updateZoomControls();
-
-        draw();
-    }
-);
-
-
-// ============================================================
-// UPDATE BUTTON
+// UPDATE DISCRETIZE BUTTON
 // ============================================================
 
 function updateDiscretizeButton() {
 
-    if (
-        isDiscretized
-    ) {
+    const button =
+        document.getElementById(
+            "discretizePattern"
+        );
 
-        discretizeButton.textContent =
+
+    if (isDiscretized) {
+
+        button.textContent =
             "Edit Pattern";
 
     } else {
 
-        discretizeButton.textContent =
+        button.textContent =
             "Discretize Pattern";
     }
 }
@@ -988,45 +1073,10 @@ function updateDiscretizeButton() {
 
 function draw() {
 
-    if (
-        !ctx
-    ) {
+    if (!ctx) {
 
         return;
     }
-
-
-    if (
-        isDiscretized &&
-        discretizedPattern
-    ) {
-
-        canvas.classList.add(
-            "hidden"
-        );
-
-        svgContainer.classList.remove(
-            "hidden"
-        );
-
-
-        drawDiscretizedSVG();
-
-        return;
-    }
-
-
-    /*
-     * Editable canvas mode.
-     */
-
-    canvas.classList.remove(
-        "hidden"
-    );
-
-    svgContainer.classList.add(
-        "hidden"
-    );
 
 
     ctx.clearRect(
@@ -1036,6 +1086,24 @@ function draw() {
         canvas.height
     );
 
+
+    /*
+     * Discretized view.
+     */
+    if (
+        isDiscretized &&
+        discretizedPattern
+    ) {
+
+        drawDiscretizedPattern();
+
+        return;
+    }
+
+
+    /*
+     * Editable view.
+     */
 
     ctx.fillStyle =
         backgroundColor;
@@ -1050,7 +1118,7 @@ function draw() {
 
 
     /*
-     * Draw every object.
+     * Draw every object instance.
      */
     for (
         let i = 0;
@@ -1070,7 +1138,7 @@ function draw() {
 
 
 // ============================================================
-// DRAW FLOWER / OBJECT
+// DRAW OBJECT
 // ============================================================
 
 function drawFlower(
@@ -1078,20 +1146,20 @@ function drawFlower(
     selected
 ) {
 
-    if (
-        flower.objectIndex < 0 ||
-        flower.objectIndex >=
-            uploadedObjects.length
-    ) {
+    const object =
+        getObjectById(
+            flower.objectId
+        );
+
+
+    if (!object) {
 
         return;
     }
 
 
     const img =
-        uploadedObjects[
-            flower.objectIndex
-        ].image;
+        object.image;
 
 
     const x =
@@ -1133,17 +1201,21 @@ function drawFlower(
 
 
     ctx.drawImage(
+
         img,
+
         -width / 2,
         -height / 2,
+
         width,
         height
     );
 
 
-    if (
-        selected
-    ) {
+    /*
+     * Selection rectangle.
+     */
+    if (selected) {
 
         ctx.strokeStyle =
             "red";
@@ -1153,8 +1225,10 @@ function drawFlower(
 
 
         ctx.strokeRect(
+
             -width / 2,
             -height / 2,
+
             width,
             height
         );
@@ -1184,10 +1258,12 @@ function drawGrid() {
     ctx.lineWidth =
         1;
 
-
     ctx.beginPath();
 
 
+    /*
+     * Vertical lines.
+     */
     for (
         let i = 0;
         i <= nx;
@@ -1213,6 +1289,9 @@ function drawGrid() {
     }
 
 
+    /*
+     * Horizontal lines.
+     */
     for (
         let j = 0;
         j <= ny;
@@ -1243,6 +1322,62 @@ function drawGrid() {
 
 
 // ============================================================
+// DISCRETIZE / EDIT BUTTON
+// ============================================================
+
+document
+    .getElementById(
+        "discretizePattern"
+    )
+    .addEventListener(
+        "click",
+        () => {
+
+            /*
+             * Return to editable mode.
+             */
+            if (isDiscretized) {
+
+                isDiscretized = false;
+
+                updateDiscretizeButton();
+
+                draw();
+
+                return;
+            }
+
+
+            /*
+             * Need at least one object.
+             */
+            if (
+                flowers.length === 0
+            ) {
+
+                alert(
+                    "Please add at least one object to the pattern."
+                );
+
+                return;
+            }
+
+
+            discretizedPattern =
+                discretizePattern();
+
+
+            isDiscretized = true;
+
+
+            updateDiscretizeButton();
+
+            draw();
+        }
+    );
+
+
+// ============================================================
 // DISCRETIZE PATTERN
 // ============================================================
 
@@ -1266,7 +1401,7 @@ function discretizePattern() {
 
 
     /*
-     * White background.
+     * White discretization background.
      */
     offCtx.fillStyle =
         "white";
@@ -1287,20 +1422,20 @@ function discretizePattern() {
         const flower of flowers
     ) {
 
-        if (
-            flower.objectIndex < 0 ||
-            flower.objectIndex >=
-                uploadedObjects.length
-        ) {
+        const object =
+            getObjectById(
+                flower.objectId
+            );
+
+
+        if (!object) {
 
             continue;
         }
 
 
         const img =
-            uploadedObjects[
-                flower.objectIndex
-            ].image;
+            object.image;
 
 
         const x =
@@ -1340,9 +1475,12 @@ function discretizePattern() {
 
 
         offCtx.drawImage(
+
             img,
+
             -width / 2,
             -height / 2,
+
             width,
             height
         );
@@ -1353,12 +1491,7 @@ function discretizePattern() {
 
 
     /*
-     * IMPORTANT:
-     *
-     * We do NOT flip the image here.
-     *
-     * Canvas row 0 is the top row.
-     * The SVG row 0 is also the top row.
+     * Get rendered pixels.
      */
     const imageData =
         offCtx.getImageData(
@@ -1394,7 +1527,7 @@ function discretizePattern() {
 
 
     /*
-     * Determine whether each cell is black or white.
+     * Determine each cell.
      */
     for (
         let row = 0;
@@ -1465,15 +1598,24 @@ function discretizePattern() {
                         imageData.data[index];
 
                     const g =
-                        imageData.data[index + 1];
+                        imageData.data[
+                            index + 1
+                        ];
 
                     const b =
-                        imageData.data[index + 2];
+                        imageData.data[
+                            index + 2
+                        ];
 
                     const a =
-                        imageData.data[index + 3];
+                        imageData.data[
+                            index + 3
+                        ];
 
 
+                    /*
+                     * Transparent pixels are background.
+                     */
                     if (
                         a < 20
                     ) {
@@ -1532,128 +1674,23 @@ function discretizePattern() {
     }
 
 
+    /*
+     * IMPORTANT:
+     *
+     * DO NOT reverse the rows.
+     *
+     * This preserves the original PNG's
+     * top-to-bottom orientation.
+     */
     return pattern;
 }
 
 
 // ============================================================
-// SVG DISCRETIZED PATTERN
+// DRAW DISCRETIZED PATTERN
 // ============================================================
 
-function drawDiscretizedSVG() {
-
-    /*
-     * Completely rebuild the SVG.
-     *
-     * Everything inside it is vector:
-     *
-     *   rectangles
-     *   gridlines
-     *   numbers
-     *   run counts
-     */
-    while (
-        patternSVG.firstChild
-    ) {
-
-        patternSVG.removeChild(
-            patternSVG.firstChild
-        );
-    }
-
-
-    const svgWidth =
-        canvas.width;
-
-    const svgHeight =
-        canvas.height;
-
-
-    patternSVG.setAttribute(
-        "viewBox",
-        `0 0 ${svgWidth} ${svgHeight}`
-    );
-
-
-    patternSVG.setAttribute(
-        "width",
-        svgWidth
-    );
-
-    patternSVG.setAttribute(
-        "height",
-        svgHeight
-    );
-
-
-    /*
-     * Zoom using SVG transform.
-     */
-    const zoomGroup =
-        createSVGElement(
-            "g"
-        );
-
-
-    const centerX =
-        svgWidth / 2;
-
-    const centerY =
-        svgHeight / 2;
-
-
-    zoomGroup.setAttribute(
-        "transform",
-        `translate(${centerX} ${centerY})
-         scale(${svgZoom})
-         translate(${-centerX} ${-centerY})`
-    );
-
-
-    patternSVG.appendChild(
-        zoomGroup
-    );
-
-
-    /*
-     * White background.
-     */
-    const background =
-        createSVGElement(
-            "rect"
-        );
-
-
-    background.setAttribute(
-        "x",
-        0
-    );
-
-    background.setAttribute(
-        "y",
-        0
-    );
-
-    background.setAttribute(
-        "width",
-        svgWidth
-    );
-
-    background.setAttribute(
-        "height",
-        svgHeight
-    );
-
-    background.setAttribute(
-        "fill",
-        "white"
-    );
-
-
-    zoomGroup.appendChild(
-        background
-    );
-
+function drawDiscretizedPattern() {
 
     const cellWidth =
         patternWidth / nx;
@@ -1663,11 +1700,23 @@ function drawDiscretizedSVG() {
 
 
     /*
-     * --------------------------------------------------------
-     * BLACK CELLS
-     * --------------------------------------------------------
+     * White background.
      */
+    ctx.fillStyle =
+        "white";
 
+
+    ctx.fillRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+
+    /*
+     * Black cells.
+     */
     for (
         let row = 0;
         row < ny;
@@ -1681,220 +1730,118 @@ function drawDiscretizedSVG() {
         ) {
 
             if (
-                discretizedPattern[row][col] !== 1
+                discretizedPattern[row][col] === 1
             ) {
 
-                continue;
-            }
+                ctx.fillStyle =
+                    "black";
 
 
-            const rect =
-                createSVGElement(
-                    "rect"
+                ctx.fillRect(
+
+                    patternX +
+                    col * cellWidth,
+
+                    patternY +
+                    row * cellHeight,
+
+                    cellWidth,
+
+                    cellHeight
                 );
-
-
-            rect.setAttribute(
-                "x",
-                patternX +
-                col * cellWidth
-            );
-
-
-            rect.setAttribute(
-                "y",
-                patternY +
-                row * cellHeight
-            );
-
-
-            rect.setAttribute(
-                "width",
-                cellWidth
-            );
-
-
-            rect.setAttribute(
-                "height",
-                cellHeight
-            );
-
-
-            rect.setAttribute(
-                "fill",
-                "black"
-            );
-
-
-            zoomGroup.appendChild(
-                rect
-            );
+            }
         }
     }
 
 
     /*
-     * --------------------------------------------------------
-     * GRID
-     * --------------------------------------------------------
+     * Gray gridlines.
      */
+    ctx.strokeStyle =
+        "#999999";
 
-    const gridGroup =
-        createSVGElement(
-            "g"
-        );
+    ctx.lineWidth =
+        1;
 
-
-    gridGroup.setAttribute(
-        "stroke",
-        "#999999"
-    );
-
-    gridGroup.setAttribute(
-        "stroke-width",
-        "1"
-    );
-
-    gridGroup.setAttribute(
-        "fill",
-        "none"
-    );
+    ctx.beginPath();
 
 
+    /*
+     * Vertical lines.
+     */
     for (
         let i = 0;
         i <= nx;
         i++
     ) {
 
-        const line =
-            createSVGElement(
-                "line"
-            );
-
-
         const x =
             patternX +
             i * cellWidth;
 
 
-        line.setAttribute(
-            "x1",
-            x
-        );
-
-        line.setAttribute(
-            "y1",
+        ctx.moveTo(
+            x,
             patternY
         );
 
-        line.setAttribute(
-            "x2",
-            x
-        );
 
-        line.setAttribute(
-            "y2",
+        ctx.lineTo(
+            x,
             patternY +
             patternHeight
-        );
-
-
-        gridGroup.appendChild(
-            line
         );
     }
 
 
+    /*
+     * Horizontal lines.
+     */
     for (
         let j = 0;
         j <= ny;
         j++
     ) {
 
-        const line =
-            createSVGElement(
-                "line"
-            );
-
-
         const y =
             patternY +
             j * cellHeight;
 
 
-        line.setAttribute(
-            "x1",
-            patternX
-        );
-
-        line.setAttribute(
-            "y1",
+        ctx.moveTo(
+            patternX,
             y
         );
 
-        line.setAttribute(
-            "x2",
+
+        ctx.lineTo(
             patternX +
-            patternWidth
-        );
-
-        line.setAttribute(
-            "y2",
+            patternWidth,
             y
-        );
-
-
-        gridGroup.appendChild(
-            line
         );
     }
 
 
-    zoomGroup.appendChild(
-        gridGroup
-    );
+    ctx.stroke();
 
 
     /*
-     * --------------------------------------------------------
-     * NUMBERS
-     * --------------------------------------------------------
+     * Number style.
      */
+    ctx.fillStyle =
+        "black";
 
-    const numberGroup =
-        createSVGElement(
-            "g"
-        );
-
-
-    numberGroup.setAttribute(
-        "font-family",
-        "Arial, sans-serif"
-    );
-
-    numberGroup.setAttribute(
-        "font-size",
-        getNumberFontSize(
-            cellWidth,
-            cellHeight
-        )
-    );
-
-    numberGroup.setAttribute(
-        "font-weight",
-        "bold"
-    );
-
-    numberGroup.setAttribute(
-        "fill",
-        "black"
-    );
+    ctx.font =
+        "bold 12px Arial";
 
 
     /*
      * Row numbers.
      */
+    ctx.textBaseline =
+        "middle";
+
+
     for (
         let row = 0;
         row < ny;
@@ -1908,30 +1855,38 @@ function drawDiscretizedSVG() {
 
 
         /*
-         * Left number.
+         * Left.
          */
-        addSVGText(
-            numberGroup,
+        ctx.textAlign =
+            "right";
+
+
+        ctx.fillText(
+
             String(row + 1),
-            patternX - 8,
-            y,
-            "end",
-            "middle"
+
+            patternX - 7,
+
+            y
         );
 
 
         /*
-         * Right number.
+         * Right.
          */
-        addSVGText(
-            numberGroup,
+        ctx.textAlign =
+            "left";
+
+
+        ctx.fillText(
+
             String(row + 1),
+
             patternX +
-                patternWidth +
-                8,
-            y,
-            "start",
-            "middle"
+            patternWidth +
+            7,
+
+            y
         );
     }
 
@@ -1954,100 +1909,126 @@ function drawDiscretizedSVG() {
         /*
          * Top.
          */
-        addSVGText(
-            numberGroup,
+        ctx.textAlign =
+            "center";
+
+        ctx.textBaseline =
+            "bottom";
+
+
+        ctx.fillText(
+
             String(col + 1),
+
             x,
-            patternY - 8,
-            "middle",
-            "bottom"
+
+            patternY - 7
         );
 
 
         /*
          * Bottom.
          */
-        addSVGText(
-            numberGroup,
+        ctx.textBaseline =
+            "top";
+
+
+        ctx.fillText(
+
             String(col + 1),
+
             x,
+
             patternY +
-                patternHeight +
-                8,
-            "middle",
-            "top"
+            patternHeight +
+            7
         );
     }
 
 
-    zoomGroup.appendChild(
-        numberGroup
-    );
-
-
     /*
-     * --------------------------------------------------------
-     * RUN COUNTS
-     * --------------------------------------------------------
+     * Run counts.
      */
-
     if (
         showRunCounts
     ) {
 
-        drawSVGRunCounts(
-            zoomGroup,
-            cellWidth,
-            cellHeight
-        );
+        drawRunCounts();
     }
-
-
-    /*
-     * Apply the complete SVG to the page.
-     */
-    updateSVGDimensions();
 }
 
 
 // ============================================================
-// SVG RUN COUNTS
+// RUN COUNT CHECKBOX
 // ============================================================
 
-function drawSVGRunCounts(
-    parent,
-    cellWidth,
-    cellHeight
-) {
+document
+    .getElementById(
+        "showRunCounts"
+    )
+    .addEventListener(
+        "change",
+        (event) => {
 
-    const group =
-        createSVGElement(
-            "g"
-        );
+            showRunCounts =
+                event.target.checked;
 
 
-    group.setAttribute(
-        "font-family",
-        "Arial, sans-serif"
+            draw();
+        }
     );
 
-    group.setAttribute(
-        "font-size",
-        getNumberFontSize(
-            cellWidth,
-            cellHeight
-        )
+
+// ============================================================
+// RUN DIRECTION
+// ============================================================
+
+document
+    .getElementById(
+        "runDirection"
+    )
+    .addEventListener(
+        "change",
+        (event) => {
+
+            runDirection =
+                event.target.value;
+
+
+            draw();
+        }
     );
 
-    group.setAttribute(
-        "font-weight",
-        "bold"
-    );
 
-    group.setAttribute(
-        "fill",
-        "red"
-    );
+// ============================================================
+// RUN COUNTS
+// ============================================================
+
+function drawRunCounts() {
+
+    if (
+        !discretizedPattern
+    ) {
+
+        return;
+    }
+
+
+    const cellWidth =
+        patternWidth / nx;
+
+    const cellHeight =
+        patternHeight / ny;
+
+
+    ctx.fillStyle =
+        "red";
+
+    ctx.font =
+        "bold 12px Arial";
+
+    ctx.textBaseline =
+        "middle";
 
 
     for (
@@ -2071,6 +2052,9 @@ function drawSVGRunCounts(
                 col + 1;
 
 
+            /*
+             * Find end of run.
+             */
             while (
                 end < nx &&
                 discretizedPattern[row][end] === value
@@ -2097,15 +2081,22 @@ function drawSVGRunCounts(
                 runDirection === "left"
             ) {
 
-                addSVGText(
-                    group,
-                    String(runLength),
+                const x =
                     patternX +
-                        col * cellWidth +
-                        cellWidth / 2,
-                    y,
-                    "middle",
-                    "middle"
+                    col * cellWidth +
+                    cellWidth / 2;
+
+
+                ctx.textAlign =
+                    "center";
+
+
+                ctx.fillText(
+
+                    String(runLength),
+
+                    x,
+                    y
                 );
             }
 
@@ -2117,16 +2108,23 @@ function drawSVGRunCounts(
                 runDirection === "right"
             ) {
 
-                addSVGText(
-                    group,
-                    String(runLength),
+                const x =
                     patternX +
-                        (end - 1) *
-                        cellWidth +
-                        cellWidth / 2,
-                    y,
-                    "middle",
-                    "middle"
+                    (end - 1) *
+                    cellWidth +
+                    cellWidth / 2;
+
+
+                ctx.textAlign =
+                    "center";
+
+
+                ctx.fillText(
+
+                    String(runLength),
+
+                    x,
+                    y
                 );
             }
 
@@ -2134,7 +2132,9 @@ function drawSVGRunCounts(
             /*
              * BOTH
              *
-             * For a one-cell run, only display it once.
+             * For a one-cell run, only write the
+             * number once because both ends are
+             * the same cell.
              */
             else if (
                 runDirection === "both"
@@ -2153,13 +2153,16 @@ function drawSVGRunCounts(
                     cellWidth / 2;
 
 
-                addSVGText(
-                    group,
+                ctx.textAlign =
+                    "center";
+
+
+                ctx.fillText(
+
                     String(runLength),
+
                     leftX,
-                    y,
-                    "middle",
-                    "middle"
+                    y
                 );
 
 
@@ -2167,13 +2170,12 @@ function drawSVGRunCounts(
                     runLength > 1
                 ) {
 
-                    addSVGText(
-                        group,
+                    ctx.fillText(
+
                         String(runLength),
+
                         rightX,
-                        y,
-                        "middle",
-                        "middle"
+                        y
                     );
                 }
             }
@@ -2182,355 +2184,14 @@ function drawSVGRunCounts(
             col = end;
         }
     }
-
-
-    parent.appendChild(
-        group
-    );
 }
 
 
 // ============================================================
-// SVG TEXT
+// CANVAS COORDINATE CONVERSION
 // ============================================================
 
-function addSVGText(
-    parent,
-    text,
-    x,
-    y,
-    anchor,
-    baseline
-) {
-
-    const element =
-        createSVGElement(
-            "text"
-        );
-
-
-    element.textContent =
-        text;
-
-
-    element.setAttribute(
-        "x",
-        x
-    );
-
-
-    element.setAttribute(
-        "y",
-        y
-    );
-
-
-    element.setAttribute(
-        "text-anchor",
-        anchor
-    );
-
-
-    element.setAttribute(
-        "dominant-baseline",
-        baseline
-    );
-
-
-    parent.appendChild(
-        element
-    );
-}
-
-
-// ============================================================
-// SVG ELEMENT CREATOR
-// ============================================================
-
-function createSVGElement(
-    tag
-) {
-
-    return document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        tag
-    );
-}
-
-
-// ============================================================
-// SVG FONT SIZE
-// ============================================================
-
-function getNumberFontSize(
-    cellWidth,
-    cellHeight
-) {
-
-    /*
-     * Make the numbers proportional to the cell.
-     *
-     * This is important for large grids:
-     * the numbers shrink with the cells, but because
-     * SVG is vector, zooming reveals them cleanly.
-     */
-    const smallerDimension =
-        Math.min(
-            cellWidth,
-            cellHeight
-        );
-
-
-    return Math.max(
-        4,
-        Math.min(
-            16,
-            smallerDimension * 0.42
-        )
-    );
-}
-
-
-// ============================================================
-// SVG DIMENSIONS
-// ============================================================
-
-function updateSVGDimensions() {
-
-    /*
-     * Make the SVG physically larger when zoomed.
-     *
-     * This allows the browser's scrollbars to appear
-     * naturally for very large patterns.
-     */
-    patternSVG.style.width =
-        `${canvas.width * svgZoom}px`;
-
-
-    patternSVG.style.height =
-        `${canvas.height * svgZoom}px`;
-}
-
-
-// ============================================================
-// ZOOM CONTROLS
-// ============================================================
-
-const zoomControls =
-    document.getElementById(
-        "zoomControls"
-    );
-
-const zoomValue =
-    document.getElementById(
-        "zoomValue"
-    );
-
-
-document
-    .getElementById("zoomIn")
-    .addEventListener(
-        "click",
-        () => {
-
-            svgZoom =
-                Math.min(
-                    svgZoom * 1.5,
-                    20
-                );
-
-
-            redrawSVG();
-        }
-    );
-
-
-document
-    .getElementById("zoomOut")
-    .addEventListener(
-        "click",
-        () => {
-
-            svgZoom =
-                Math.max(
-                    svgZoom / 1.5,
-                    0.25
-                );
-
-
-            redrawSVG();
-        }
-    );
-
-
-document
-    .getElementById("zoomReset")
-    .addEventListener(
-        "click",
-        () => {
-
-            svgZoom = 1.0;
-
-            redrawSVG();
-        }
-    );
-
-
-// ============================================================
-// SVG MOUSE WHEEL ZOOM
-// ============================================================
-
-svgContainer.addEventListener(
-    "wheel",
-    (event) => {
-
-        if (
-            !isDiscretized
-        ) {
-
-            return;
-        }
-
-
-        event.preventDefault();
-
-
-        if (
-            event.deltaY < 0
-        ) {
-
-            svgZoom =
-                Math.min(
-                    svgZoom * 1.15,
-                    20
-                );
-
-        } else {
-
-            svgZoom =
-                Math.max(
-                    svgZoom / 1.15,
-                    0.25
-                );
-        }
-
-
-        redrawSVG();
-    },
-    {
-        passive: false
-    }
-);
-
-
-// ============================================================
-// REDRAW SVG
-// ============================================================
-
-function redrawSVG() {
-
-    if (
-        !isDiscretized ||
-        !discretizedPattern
-    ) {
-
-        return;
-    }
-
-
-    drawDiscretizedSVG();
-
-    updateZoomControls();
-}
-
-
-// ============================================================
-// UPDATE ZOOM CONTROLS
-// ============================================================
-
-function updateZoomControls() {
-
-    if (
-        isDiscretized
-    ) {
-
-        zoomControls.classList.remove(
-            "hidden"
-        );
-
-
-        zoomValue.textContent =
-            `${Math.round(svgZoom * 100)}%`;
-
-    } else {
-
-        zoomControls.classList.add(
-            "hidden"
-        );
-    }
-}
-
-
-// ============================================================
-// RUN COUNT CHECKBOX
-// ============================================================
-
-document
-    .getElementById(
-        "showRunCounts"
-    )
-    .addEventListener(
-        "change",
-        (event) => {
-
-            showRunCounts =
-                event.target.checked;
-
-
-            if (
-                isDiscretized
-            ) {
-
-                drawDiscretizedSVG();
-
-            }
-        }
-    );
-
-
-// ============================================================
-// RUN DIRECTION
-// ============================================================
-
-document
-    .getElementById(
-        "runDirection"
-    )
-    .addEventListener(
-        "change",
-        (event) => {
-
-            runDirection =
-                event.target.value;
-
-
-            if (
-                isDiscretized
-            ) {
-
-                drawDiscretizedSVG();
-            }
-        }
-    );
-
-
-// ============================================================
-// CANVAS COORDINATES
-// ============================================================
-
-function getCanvasCoordinates(
-    event
-) {
+function getCanvasCoordinates(event) {
 
     const rect =
         canvas.getBoundingClientRect();
@@ -2552,15 +2213,13 @@ function getCanvasCoordinates(
             (
                 event.clientX -
                 rect.left
-            ) *
-            scaleX,
+            ) * scaleX,
 
         y:
             (
                 event.clientY -
                 rect.top
-            ) *
-            scaleY
+            ) * scaleY
     };
 }
 
@@ -2619,44 +2278,32 @@ canvas.addEventListener(
             mouse.y - fy;
 
 
-        /*
-         * Use the actual image size when
-         * determining the clickable region.
-         */
         const object =
-            uploadedObjects[
-                flower.objectIndex
-            ];
+            getObjectById(
+                flower.objectId
+            );
 
 
         if (!object) {
+
             return;
         }
 
 
-        const width =
-            object.image.width *
-            flower.scale;
-
-
-        const height =
-            object.image.height *
-            flower.scale;
-
-
         const hitRadius =
             Math.max(
-                width,
-                height
-            ) / 2;
+                object.image.width,
+                object.image.height
+            ) *
+            flower.scale /
+            2;
 
 
         if (
             Math.sqrt(
                 dx * dx +
                 dy * dy
-            ) <
-            hitRadius
+            ) < hitRadius
         ) {
 
             dragging = true;
@@ -2672,10 +2319,6 @@ canvas.addEventListener(
     }
 );
 
-
-// ============================================================
-// MOUSE MOVE
-// ============================================================
 
 canvas.addEventListener(
     "mousemove",
@@ -2731,10 +2374,14 @@ canvas.addEventListener(
             );
 
 
-        invalidatePattern();
+        discretizedPattern = null;
+
+        isDiscretized = false;
 
 
         updateControls();
+
+        updateDiscretizeButton();
 
         draw();
     }
@@ -2781,17 +2428,20 @@ canvas.addEventListener(
             );
 
 
-        let closest =
-            -1;
+        let closest = -1;
 
         let closestDistance =
             Infinity;
 
 
+        /*
+         * Search backwards so that objects
+         * drawn later are selected first.
+         */
         for (
-            let i = 0;
-            i < flowers.length;
-            i++
+            let i = flowers.length - 1;
+            i >= 0;
+            i--
         ) {
 
             const flower =
@@ -2799,12 +2449,13 @@ canvas.addEventListener(
 
 
             const object =
-                uploadedObjects[
-                    flower.objectIndex
-                ];
+                getObjectById(
+                    flower.objectId
+                );
 
 
             if (!object) {
+
                 continue;
             }
 
@@ -2829,23 +2480,6 @@ canvas.addEventListener(
                 mouse.y - fy;
 
 
-            const width =
-                object.image.width *
-                flower.scale;
-
-
-            const height =
-                object.image.height *
-                flower.scale;
-
-
-            const hitRadius =
-                Math.max(
-                    width,
-                    height
-                ) / 2;
-
-
             const distance =
                 Math.sqrt(
                     dx * dx +
@@ -2853,11 +2487,20 @@ canvas.addEventListener(
                 );
 
 
+            const hitRadius =
+                Math.max(
+                    object.image.width,
+                    object.image.height
+                ) *
+                flower.scale /
+                2;
+
+
             if (
                 distance <
-                    hitRadius &&
+                hitRadius &&
                 distance <
-                    closestDistance
+                closestDistance
             ) {
 
                 closest =
@@ -2926,7 +2569,7 @@ document.addEventListener(
 
 
 // ============================================================
-// UTILITY
+// UTILITY FUNCTIONS
 // ============================================================
 
 function clamp(
