@@ -3,17 +3,11 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Crochet Pattern Generator</title>
 
-    <link
-        rel="stylesheet"
-        href="style.css"
-    >
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
@@ -22,10 +16,7 @@
          STARTUP SETTINGS
          ===================================================== -->
 
-    <div
-        id="setupScreen"
-        class="setup-screen"
-    >
+    <div id="setupScreen" class="setup-screen">
 
         <div class="setup-panel">
 
@@ -44,7 +35,7 @@
                     id="nxInput"
                     min="1"
                     max="500"
-                    value="58"
+                    value="60"
                 >
 
             </div>
@@ -85,7 +76,7 @@
             <div class="setup-row">
 
                 <label for="pngInput">
-                    PNG objects
+                    PNG object
                 </label>
 
                 <input
@@ -99,8 +90,8 @@
 
 
             <p class="setup-note">
-                You can upload multiple PNGs. They can all be
-                used as separate objects in the pattern.
+                You can upload multiple PNGs. They can be added to
+                the pattern individually after creating the pattern.
             </p>
 
 
@@ -126,26 +117,14 @@
     >
 
         <!-- =================================================
-             CANVAS / SVG AREA
+             CANVAS AREA
              ================================================= -->
 
         <main class="canvas-area">
 
             <div class="canvas-wrapper">
 
-                <!-- Editable object view -->
                 <canvas id="canvas"></canvas>
-
-                <!-- Vector discretized view -->
-                <div
-                    id="svgContainer"
-                    class="svg-container hidden"
-                >
-                    <svg
-                        id="patternSVG"
-                        xmlns="http://www.w3.org/2000/svg"
-                    ></svg>
-                </div>
 
             </div>
 
@@ -162,7 +141,7 @@
 
 
             <!-- =================================================
-                 PATTERN
+                 PATTERN SETTINGS
                  ================================================= -->
 
             <section class="control-section">
@@ -174,7 +153,7 @@
                     <span>Columns:</span>
 
                     <strong id="nxDisplay">
-                        58
+                        60
                     </strong>
 
                 </div>
@@ -209,17 +188,17 @@
 
 
             <!-- =================================================
-                 UPLOAD OBJECTS
+                 PNG OBJECT LIBRARY
                  ================================================= -->
 
             <section class="control-section">
 
-                <h3>Upload Objects</h3>
+                <h3>Objects</h3>
 
                 <div class="control-row">
 
                     <label for="objectUpload">
-                        Add PNGs
+                        Upload PNG
                     </label>
 
                     <input
@@ -236,32 +215,17 @@
                     id="uploadedFileName"
                     class="file-name"
                 >
-                    No PNGs selected
+                    No PNGs uploaded
                 </div>
 
-            </section>
-
-
-            <!-- =================================================
-                 OBJECT LIBRARY
-                 ================================================= -->
-
-            <section class="control-section">
-
-                <h3>Object Library</h3>
 
                 <div class="control-row">
 
-                    <label for="objectSelect">
+                    <label for="flowerSelect">
                         Object
                     </label>
 
-                    <select id="objectSelect">
-
-                        <option value="">
-                            No objects uploaded
-                        </option>
-
+                    <select id="flowerSelect">
                     </select>
 
                 </div>
@@ -345,7 +309,7 @@
 
 
             <!-- =================================================
-                 TRANSFORM
+                 ROTATION / SCALE
                  ================================================= -->
 
             <section class="control-section">
@@ -454,7 +418,7 @@
 
 
             <!-- =================================================
-                 DISCRETIZE
+                 DISCRETIZE / EDIT
                  ================================================= -->
 
             <section class="control-section">
@@ -465,45 +429,6 @@
                 >
                     Discretize Pattern
                 </button>
-
-            </section>
-
-
-            <!-- =================================================
-                 VECTOR ZOOM
-                 ================================================= -->
-
-            <section
-                id="zoomControls"
-                class="control-section hidden"
-            >
-
-                <h3>Vector Zoom</h3>
-
-                <div class="button-row">
-
-                    <button id="zoomOut">
-                        −
-                    </button>
-
-                    <button id="zoomReset">
-                        Reset
-                    </button>
-
-                    <button id="zoomIn">
-                        +
-                    </button>
-
-                </div>
-
-
-                <div class="zoom-display">
-
-                    <span id="zoomValue">
-                        100%
-                    </span>
-
-                </div>
 
             </section>
 
