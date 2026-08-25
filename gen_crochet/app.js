@@ -2,7 +2,7 @@
 // CROCHET PATTERN GENERATOR
 // ============================================================
 
-let nx = 58;
+let nx = 60;
 let ny = 30;
 
 let backgroundColor = "#e2e922";
