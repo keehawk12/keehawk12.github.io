@@ -1,89 +1,412 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Crochet Pattern Generator</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Crochet Pattern Generator</title>
+
+    <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-  <main class="app">
-    <section class="workspace">
-      <div class="canvas-wrap">
-        <canvas id="patternCanvas"></canvas>
-      </div>
 
-      <aside class="panel">
-        <button id="uploadButton" class="primary">Add Flower</button>
-        <input id="flowerFile" type="file" accept="image/*" hidden>
+    <!-- =====================================================
+         STARTUP SETTINGS
+         ===================================================== -->
 
-        <label>Selected Flower</label>
-        <select id="flowerMenu">
-          <option value="-1">None</option>
-        </select>
+    <div id="setupScreen" class="setup-screen">
 
-        <div class="control-group">
-          <label for="xDial">X Position</label>
-          <input id="xDial" type="range">
-          <output id="xValue">29.00</output>
+        <div class="setup-panel">
+
+            <h1>Crochet Pattern Generator</h1>
+
+            <h2>Pattern Settings</h2>
+
+            <div class="setup-row">
+                <label for="nxInput">Number of columns (nx)</label>
+                <input
+                    type="number"
+                    id="nxInput"
+                    min="1"
+                    max="500"
+                    value="58"
+                >
+            </div>
+
+            <div class="setup-row">
+                <label for="nyInput">Number of rows (ny)</label>
+                <input
+                    type="number"
+                    id="nyInput"
+                    min="1"
+                    max="500"
+                    value="30"
+                >
+            </div>
+
+            <div class="setup-row">
+                <label for="backgroundColorInput">
+                    Background color
+                </label>
+
+                <input
+                    type="color"
+                    id="backgroundColorInput"
+                    value="#e2e922"
+                >
+            </div>
+
+            <div class="setup-row">
+                <label for="pngInput">
+                    PNG object
+                </label>
+
+                <input
+                    type="file"
+                    id="pngInput"
+                    accept="image/png"
+                >
+            </div>
+
+            <p class="setup-note">
+                You can also upload a PNG later from the controls.
+            </p>
+
+            <button id="startButton" class="primary-button">
+                Create Pattern
+            </button>
+
         </div>
 
-        <div class="control-group">
-          <label for="yDial">Y Position</label>
-          <input id="yDial" type="range">
-          <output id="yValue">15.00</output>
-        </div>
-
-        <div class="control-group">
-          <label for="rotationDial">Rotation (deg)</label>
-          <input id="rotationDial" type="range" min="-180" max="180" step="0.1" value="0">
-          <output id="rotationValue">0.0 deg</output>
-        </div>
-
-        <div class="control-group">
-          <label for="scaleDial">Size</label>
-          <input id="scaleDial" type="range" min="0.01" max="10" step="0.01" value="2">
-          <output id="scaleValue">2.00</output>
-        </div>
-
-        <button id="deleteButton">Delete Flower</button>
-
-        <label class="checkbox-row">
-          <input id="runCountCheckbox" type="checkbox">
-          <span>Show Run Counts</span>
-        </label>
-
-        <div class="direction-row">
-          <label for="runDirection">Run Direction</label>
-          <select id="runDirection">
-            <option value="1">Left</option>
-            <option value="2">Right</option>
-            <option value="3">Alternating (Left First)</option>
-            <option value="4">Alternating (Right First)</option>
-            <option value="5">Both Left and Right</option>
-          </select>
-        </div>
-
-        <button id="discretizeButton" class="primary">Discretize Pattern</button>
-
-        <div class="hint">
-          Add one or more images, then position, rotate, and resize them on the canvas.
-        </div>
-      </aside>
-    </section>
-  </main>
-
-  <div id="modal" class="modal hidden">
-    <div class="modal-content">
-      <button id="closeModal" class="close-button" aria-label="Close">&times;</button>
-      <canvas id="gridCanvas"></canvas>
-      <div class="grid-actions">
-        <button id="downloadPng">Download PNG</button>
-        <button id="downloadJson">Save Pattern Data</button>
-      </div>
     </div>
-  </div>
 
-  <script src="app.js"></script>
+
+    <!-- =====================================================
+         MAIN APPLICATION
+         ===================================================== -->
+
+    <div id="app" class="app-container hidden">
+
+        <!-- =================================================
+             CANVAS AREA
+             ================================================= -->
+
+        <main class="canvas-area">
+
+            <div class="canvas-wrapper">
+
+                <canvas id="canvas"></canvas>
+
+            </div>
+
+        </main>
+
+
+        <!-- =================================================
+             CONTROL PANEL
+             ================================================= -->
+
+        <aside class="control-panel">
+
+            <h2>Pattern Controls</h2>
+
+
+            <!-- ---------------------------------------------
+                 PATTERN SETTINGS
+                 --------------------------------------------- -->
+
+            <section class="control-section">
+
+                <h3>Pattern</h3>
+
+                <div class="info-row">
+                    <span>Columns:</span>
+                    <strong id="nxDisplay">58</strong>
+                </div>
+
+                <div class="info-row">
+                    <span>Rows:</span>
+                    <strong id="nyDisplay">30</strong>
+                </div>
+
+                <div class="control-row">
+
+                    <label for="backgroundColor">
+                        Background
+                    </label>
+
+                    <input
+                        type="color"
+                        id="backgroundColor"
+                        value="#e2e922"
+                    >
+
+                </div>
+
+            </section>
+
+
+            <!-- ---------------------------------------------
+                 PNG OBJECT
+                 --------------------------------------------- -->
+
+            <section class="control-section">
+
+                <h3>Object</h3>
+
+                <div class="control-row">
+
+                    <label for="objectUpload">
+                        Upload PNG
+                    </label>
+
+                    <input
+                        type="file"
+                        id="objectUpload"
+                        accept="image/png"
+                    >
+
+                </div>
+
+                <div
+                    id="uploadedFileName"
+                    class="file-name"
+                >
+                    No PNG selected
+                </div>
+
+            </section>
+
+
+            <!-- ---------------------------------------------
+                 OBJECT SELECTION
+                 --------------------------------------------- -->
+
+            <section class="control-section">
+
+                <h3>Objects</h3>
+
+                <div class="control-row">
+
+                    <label for="flowerSelect">
+                        Object
+                    </label>
+
+                    <select id="flowerSelect">
+                        <option value="uploaded">
+                            Uploaded PNG
+                        </option>
+                    </select>
+
+                </div>
+
+                <div class="button-row">
+
+                    <button id="addFlower">
+                        Add Object
+                    </button>
+
+                    <button
+                        id="deleteFlower"
+                        disabled
+                    >
+                        Delete Object
+                    </button>
+
+                </div>
+
+            </section>
+
+
+            <!-- ---------------------------------------------
+                 POSITION
+                 --------------------------------------------- -->
+
+            <section class="control-section">
+
+                <h3>Position</h3>
+
+                <div class="slider-row">
+
+                    <label for="xPosition">
+                        X Position
+                    </label>
+
+                    <span id="xValue">
+                        0.50
+                    </span>
+
+                </div>
+
+                <input
+                    type="range"
+                    id="xPosition"
+                    min="0"
+                    max="1"
+                    step="0.001"
+                    value="0.5"
+                    disabled
+                >
+
+
+                <div class="slider-row">
+
+                    <label for="yPosition">
+                        Y Position
+                    </label>
+
+                    <span id="yValue">
+                        0.50
+                    </span>
+
+                </div>
+
+                <input
+                    type="range"
+                    id="yPosition"
+                    min="0"
+                    max="1"
+                    step="0.001"
+                    value="0.5"
+                    disabled
+                >
+
+            </section>
+
+
+            <!-- ---------------------------------------------
+                 ROTATION / SCALE
+                 --------------------------------------------- -->
+
+            <section class="control-section">
+
+                <h3>Transform</h3>
+
+                <div class="slider-row">
+
+                    <label for="rotation">
+                        Rotation
+                    </label>
+
+                    <span id="rotationValue">
+                        0°
+                    </span>
+
+                </div>
+
+                <input
+                    type="range"
+                    id="rotation"
+                    min="-180"
+                    max="180"
+                    step="1"
+                    value="0"
+                    disabled
+                >
+
+
+                <div class="slider-row">
+
+                    <label for="scale">
+                        Scale
+                    </label>
+
+                    <span id="scaleValue">
+                        1.00
+                    </span>
+
+                </div>
+
+                <input
+                    type="range"
+                    id="scale"
+                    min="0.01"
+                    max="10"
+                    step="0.01"
+                    value="1"
+                    disabled
+                >
+
+            </section>
+
+
+            <!-- ---------------------------------------------
+                 RUN COUNTS
+                 --------------------------------------------- -->
+
+            <section class="control-section">
+
+                <h3>Run Counts</h3>
+
+                <div class="checkbox-row">
+
+                    <input
+                        type="checkbox"
+                        id="showRunCounts"
+                    >
+
+                    <label for="showRunCounts">
+                        Show Run Counts
+                    </label>
+
+                </div>
+
+
+                <div class="control-row">
+
+                    <label for="runDirection">
+                        Direction
+                    </label>
+
+                    <select id="runDirection">
+
+                        <option value="left">
+                            Left
+                        </option>
+
+                        <option value="right">
+                            Right
+                        </option>
+
+                        <option value="alternating-left">
+                            Alternating Left First
+                        </option>
+
+                        <option value="alternating-right">
+                            Alternating Right First
+                        </option>
+
+                    </select>
+
+                </div>
+
+            </section>
+
+
+            <!-- ---------------------------------------------
+                 DISCRETIZE
+                 --------------------------------------------- -->
+
+            <section class="control-section">
+
+                <button
+                    id="discretizePattern"
+                    class="primary-button"
+                >
+                    Discretize Pattern
+                </button>
+
+            </section>
+
+        </aside>
+
+    </div>
+
+
+    <script src="app.js"></script>
+
 </body>
+
 </html>
