@@ -35,10 +35,11 @@
                     id="nxInput"
                     min="1"
                     max="500"
-                    value="58"
+                    value="60"
                 >
 
             </div>
+
 
             <div class="setup-row">
 
@@ -56,6 +57,7 @@
 
             </div>
 
+
             <div class="setup-row">
 
                 <label for="backgroundColorInput">
@@ -70,6 +72,7 @@
 
             </div>
 
+
             <div class="setup-row">
 
                 <label for="pngInput">
@@ -80,14 +83,17 @@
                     type="file"
                     id="pngInput"
                     accept="image/png"
+                    multiple
                 >
 
             </div>
 
+
             <p class="setup-note">
-                If no PNG is selected, flower.png will be loaded automatically.
-                You can upload additional PNGs after creating the pattern.
+                You can upload multiple PNGs. They can be added to
+                the pattern individually after creating the pattern.
             </p>
+
 
             <button
                 id="startButton"
@@ -111,7 +117,7 @@
     >
 
         <!-- =================================================
-             CANVAS
+             CANVAS AREA
              ================================================= -->
 
         <main class="canvas-area">
@@ -147,10 +153,11 @@
                     <span>Columns:</span>
 
                     <strong id="nxDisplay">
-                        58
+                        60
                     </strong>
 
                 </div>
+
 
                 <div class="info-row">
 
@@ -161,6 +168,7 @@
                     </strong>
 
                 </div>
+
 
                 <div class="control-row">
 
@@ -185,28 +193,31 @@
 
             <section class="control-section">
 
-                <h3>PNG Objects</h3>
+                <h3>Objects</h3>
 
                 <div class="control-row">
 
                     <label for="objectUpload">
-                        Add PNG
+                        Upload PNG
                     </label>
 
                     <input
                         type="file"
                         id="objectUpload"
                         accept="image/png"
+                        multiple
                     >
 
                 </div>
+
 
                 <div
                     id="uploadedFileName"
                     class="file-name"
                 >
-                    flower.png
+                    No PNGs uploaded
                 </div>
+
 
                 <div class="control-row">
 
@@ -219,16 +230,6 @@
 
                 </div>
 
-            </section>
-
-
-            <!-- =================================================
-                 OBJECT CONTROLS
-                 ================================================= -->
-
-            <section class="control-section">
-
-                <h3>Objects</h3>
 
                 <div class="button-row">
 
@@ -256,6 +257,7 @@
 
                 <h3>Position</h3>
 
+
                 <div class="slider-row">
 
                     <label for="xPosition">
@@ -268,6 +270,7 @@
 
                 </div>
 
+
                 <input
                     type="range"
                     id="xPosition"
@@ -277,6 +280,7 @@
                     value="0.5"
                     disabled
                 >
+
 
                 <div class="slider-row">
 
@@ -289,6 +293,7 @@
                     </span>
 
                 </div>
+
 
                 <input
                     type="range"
@@ -311,6 +316,7 @@
 
                 <h3>Transform</h3>
 
+
                 <div class="slider-row">
 
                     <label for="rotation">
@@ -323,6 +329,7 @@
 
                 </div>
 
+
                 <input
                     type="range"
                     id="rotation"
@@ -332,6 +339,7 @@
                     value="0"
                     disabled
                 >
+
 
                 <div class="slider-row">
 
@@ -344,6 +352,7 @@
                     </span>
 
                 </div>
+
 
                 <input
                     type="range"
@@ -366,6 +375,7 @@
 
                 <h3>Run Counts</h3>
 
+
                 <div class="checkbox-row">
 
                     <input
@@ -378,6 +388,7 @@
                     </label>
 
                 </div>
+
 
                 <div class="control-row">
 
@@ -407,7 +418,7 @@
 
 
             <!-- =================================================
-                 DISCRETIZE
+                 DISCRETIZE / EDIT
                  ================================================= -->
 
             <section class="control-section">

@@ -2,7 +2,7 @@
 // CROCHET PATTERN GENERATOR
 // ============================================================
 
-let nx = 58;
+let nx = 60;
 let ny = 30;
 
 let backgroundColor = "#e2e922";
@@ -12,55 +12,54 @@ let ctx;
 
 
 // ============================================================
-// PNG IMAGE LIBRARY
+// OBJECT LIBRARY
 // ============================================================
 //
-// Each uploaded PNG is stored here permanently during the
-// current browser session.
+// uploadedObjects contains every PNG uploaded by the user.
 //
-// Example:
+// Each object looks like:
 //
-// images = [
-//     {
-//         id: 0,
-//         name: "flower.png",
-//         image: Image object
-//     },
-//     {
-//         id: 1,
-//         name: "heart.png",
-//         image: Image object
-//     }
-// ];
+// {
+//     id: 0,
+//     name: "flower.png",
+//     image: Image
+// }
 //
-// Each flower/object then stores imageId so different PNGs
-// can coexist in the same pattern.
 // ============================================================
 
-let images = [];
+let uploadedObjects = [];
 
-let nextImageId = 0;
+let nextObjectId = 0;
 
 
 // ============================================================
-// PATTERN OBJECTS
+// PATTERN OBJECT INSTANCES
 // ============================================================
 //
-// Each object has:
-//     imageId
-//     x
-//     y
-//     rotation
-//     scale
+// flowers contains objects that have actually been placed
+// on the pattern.
+//
+// Each flower looks like:
+//
+// {
+//     objectId: 0,
+//     x: 0.5,
+//     y: 0.5,
+//     rotation: 0,
+//     scale: 1
+// }
+//
 // ============================================================
 
 let flowers = [];
 
 let selectedFlower = -1;
 
+let selectedObjectId = null;
+
 
 // ============================================================
-// DISPLAY SETTINGS
+// OTHER STATE
 // ============================================================
 
 let showRunCounts = false;
@@ -113,7 +112,9 @@ const nyInput =
     document.getElementById("nyInput");
 
 const backgroundColorInput =
-    document.getElementById("backgroundColorInput");
+    document.getElementById(
+        "backgroundColorInput"
+    );
 
 const pngInput =
     document.getElementById("pngInput");
@@ -136,7 +137,7 @@ ctx =
 
 startButton.addEventListener(
     "click",
-    () => {
+    async () => {
 
         nx =
             parseInt(
@@ -179,6 +180,7 @@ startButton.addEventListener(
 
 
         nx = Math.round(nx);
+
         ny = Math.round(ny);
 
 
@@ -211,25 +213,26 @@ startButton.addEventListener(
 
 
         /*
-         * If the user selected a PNG on the startup screen,
-         * load that PNG.
-         *
-         * Otherwise use flower.png.
+         * Load every PNG selected during startup.
          */
         if (
             pngInput.files.length > 0
         ) {
 
-            loadPNG(
-                pngInput.files[0],
-                true
-            );
+            for (
+                const file of pngInput.files
+            ) {
 
-        } else {
-
-            loadDefaultPNG();
+                await loadPNG(file);
+            }
         }
 
+
+        updateObjectDropdown();
+
+        updateControls();
+
+        updateDiscretizeButton();
 
         draw();
     }
@@ -316,7 +319,7 @@ const objectUpload =
 
 objectUpload.addEventListener(
     "change",
-    () => {
+    async () => {
 
         if (
             objectUpload.files.length === 0
@@ -326,15 +329,34 @@ objectUpload.addEventListener(
         }
 
 
-        loadPNG(
-            objectUpload.files[0],
-            false
-        );
+        /*
+         * IMPORTANT:
+         *
+         * We DO NOT clear uploadedObjects.
+         *
+         * Every newly uploaded PNG is appended
+         * to the existing object library.
+         */
+        for (
+            const file of objectUpload.files
+        ) {
+
+            await loadPNG(file);
+        }
+
+
+        updateObjectDropdown();
+
+        updateControls();
+
+        updateDiscretizeButton();
+
+        draw();
 
 
         /*
-         * Reset the file input so that the user can
-         * select the same file again later if desired.
+         * Reset the input so selecting the same file
+         * again will still trigger the change event.
          */
         objectUpload.value = "";
     }
@@ -342,276 +364,202 @@ objectUpload.addEventListener(
 
 
 // ============================================================
-// LOAD DEFAULT PNG
+// LOAD PNG
 // ============================================================
 
-function loadDefaultPNG() {
+function loadPNG(file) {
 
-    /*
-     * Check whether flower.png has already been loaded.
-     */
-    const existing =
-        images.find(
-            item =>
-                item.name === "flower.png"
-        );
+    return new Promise(
+        (resolve, reject) => {
 
-
-    if (existing) {
-
-        updateImageSelector();
-
-        if (flowers.length === 0) {
-
-            flowers.push(
-                createFlower(existing.id)
-            );
-
-            selectedFlower = 0;
-        }
-
-        updateControls();
-
-        draw();
-
-        return;
-    }
-
-
-    const img =
-        new Image();
-
-
-    img.onload =
-        function() {
-
-            const imageRecord = {
-
-                id:
-                    nextImageId++,
-
-                name:
-                    "flower.png",
-
-                image:
-                    img
-            };
-
-
-            images.push(
-                imageRecord
-            );
-
-
-            updateImageSelector();
-
-
-            /*
-             * Automatically create one flower object
-             * using the default image.
-             */
             if (
-                flowers.length === 0
+                !file.type.includes("png")
             ) {
 
-                flowers.push(
-                    createFlower(
-                        imageRecord.id
+                alert(
+                    `"${file.name}" is not a PNG image.`
+                );
+
+                reject(
+                    new Error(
+                        "Invalid PNG file."
                     )
                 );
 
-                selectedFlower = 0;
+                return;
             }
 
 
-            document.getElementById(
-                "uploadedFileName"
-            ).textContent =
-                "flower.png";
+            const reader =
+                new FileReader();
 
 
-            updateControls();
+            reader.onload =
+                function(event) {
 
-            updateDiscretizeButton();
-
-            draw();
-        };
-
-
-    img.onerror =
-        function() {
-
-            console.warn(
-                "Could not load flower.png. " +
-                "Make sure flower.png is in the same folder " +
-                "as index.html."
-            );
+                    const img =
+                        new Image();
 
 
-            document.getElementById(
-                "uploadedFileName"
-            ).textContent =
-                "flower.png not found";
-        };
+                    img.onload =
+                        function() {
+
+                            /*
+                             * Create a permanent entry
+                             * in the object library.
+                             */
+                            const object = {
+
+                                id:
+                                    nextObjectId++,
+
+                                name:
+                                    file.name,
+
+                                image:
+                                    img
+                            };
 
 
-    img.src =
-        "flower.png";
+                            uploadedObjects.push(
+                                object
+                            );
+
+
+                            /*
+                             * Make the newly uploaded
+                             * image the selected image
+                             * in the dropdown.
+                             */
+                            selectedObjectId =
+                                object.id;
+
+
+                            document.getElementById(
+                                "uploadedFileName"
+                            ).textContent =
+                                `${uploadedObjects.length} PNG` +
+                                (
+                                    uploadedObjects.length === 1
+                                        ? ""
+                                        : "s"
+                                ) +
+                                " uploaded";
+
+
+                            updateObjectDropdown();
+
+
+                            resolve();
+                        };
+
+
+                    img.onerror =
+                        function() {
+
+                            reject(
+                                new Error(
+                                    "Could not load PNG."
+                                )
+                            );
+                        };
+
+
+                    img.src =
+                        event.target.result;
+                };
+
+
+            reader.onerror =
+                function() {
+
+                    reject(
+                        new Error(
+                            "Could not read PNG."
+                        )
+                    );
+                };
+
+
+            reader.readAsDataURL(file);
+        }
+    );
 }
 
 
 // ============================================================
-// LOAD USER PNG
+// OBJECT DROPDOWN
 // ============================================================
 
-function loadPNG(
-    file,
-    startupImage = false
-) {
+const flowerSelect =
+    document.getElementById(
+        "flowerSelect"
+    );
+
+
+flowerSelect.addEventListener(
+    "change",
+    () => {
+
+        if (
+            flowerSelect.value === ""
+        ) {
+
+            selectedObjectId = null;
+
+            return;
+        }
+
+
+        selectedObjectId =
+            Number(
+                flowerSelect.value
+            );
+    }
+);
+
+
+// ============================================================
+// UPDATE OBJECT DROPDOWN
+// ============================================================
+
+function updateObjectDropdown() {
+
+    flowerSelect.innerHTML = "";
+
 
     if (
-        !file.type.includes("png")
+        uploadedObjects.length === 0
     ) {
 
-        alert(
-            "Please select a PNG image."
+        const option =
+            document.createElement(
+                "option"
+            );
+
+
+        option.value = "";
+
+        option.textContent =
+            "No PNGs uploaded";
+
+
+        flowerSelect.appendChild(
+            option
         );
+
+
+        flowerSelect.disabled = true;
 
         return;
     }
 
 
-    const reader =
-        new FileReader();
-
-
-    reader.onload =
-        function(event) {
-
-            const img =
-                new Image();
-
-
-            img.onload =
-                function() {
-
-                    /*
-                     * Create a new image record.
-                     */
-                    const imageRecord = {
-
-                        id:
-                            nextImageId++,
-
-                        name:
-                            file.name,
-
-                        image:
-                            img
-                    };
-
-
-                    /*
-                     * IMPORTANT:
-                     *
-                     * We PUSH the image into the library.
-                     *
-                     * We do NOT delete existing images.
-                     */
-                    images.push(
-                        imageRecord
-                    );
-
-
-                    /*
-                     * Update the dropdown.
-                     */
-                    updateImageSelector();
-
-
-                    /*
-                     * Select the newly uploaded image.
-                     */
-                    document.getElementById(
-                        "flowerSelect"
-                    ).value =
-                        String(
-                            imageRecord.id
-                        );
-
-
-                    document.getElementById(
-                        "uploadedFileName"
-                    ).textContent =
-                        file.name;
-
-
-                    /*
-                     * If this was the startup image,
-                     * create the first object automatically.
-                     */
-                    if (
-                        startupImage &&
-                        flowers.length === 0
-                    ) {
-
-                        flowers.push(
-                            createFlower(
-                                imageRecord.id
-                            )
-                        );
-
-                        selectedFlower = 0;
-                    }
-
-
-                    /*
-                     * If an image is uploaded after the
-                     * application is already running, do NOT
-                     * automatically replace existing objects.
-                     *
-                     * Instead, the user can click Add Object
-                     * to add the newly uploaded PNG.
-                     */
-                    discretizedPattern = null;
-
-                    isDiscretized = false;
-
-
-                    updateControls();
-
-                    updateDiscretizeButton();
-
-                    draw();
-                };
-
-
-            img.src =
-                event.target.result;
-        };
-
-
-    reader.readAsDataURL(file);
-}
-
-
-// ============================================================
-// UPDATE IMAGE SELECTOR
-// ============================================================
-
-function updateImageSelector() {
-
-    const select =
-        document.getElementById(
-            "flowerSelect"
-        );
-
-
-    select.innerHTML = "";
+    flowerSelect.disabled = false;
 
 
     for (
-        const imageRecord of images
+        const object of uploadedObjects
     ) {
 
         const option =
@@ -621,95 +569,83 @@ function updateImageSelector() {
 
 
         option.value =
-            String(
-                imageRecord.id
-            );
+            String(object.id);
 
 
         option.textContent =
-            imageRecord.name;
+            object.name;
 
 
-        select.appendChild(
+        flowerSelect.appendChild(
             option
         );
     }
+
+
+    /*
+     * Make sure the selected object still exists.
+     */
+    const selectedExists =
+        uploadedObjects.some(
+            object =>
+                object.id === selectedObjectId
+        );
+
+
+    if (
+        !selectedExists
+    ) {
+
+        selectedObjectId =
+            uploadedObjects[0].id;
+    }
+
+
+    flowerSelect.value =
+        String(
+            selectedObjectId
+        );
 }
 
 
 // ============================================================
-// IMAGE SELECTION
+// GET OBJECT BY ID
 // ============================================================
 
-document
-    .getElementById(
-        "flowerSelect"
-    )
-    .addEventListener(
-        "change",
-        () => {
+function getObjectById(id) {
 
-            /*
-             * Selecting a PNG here does not change existing
-             * objects. It simply chooses which PNG will be used
-             * the next time "Add Object" is clicked.
-             */
-            draw();
-        }
+    return uploadedObjects.find(
+        object =>
+            object.id === id
     );
+}
 
 
 // ============================================================
-// CREATE OBJECT
+// CREATE OBJECT INSTANCE
 // ============================================================
 
 function createFlower(
-    imageId
+    objectId
 ) {
-
-    /*
-     * If no image ID was supplied, use the currently selected
-     * image in the dropdown.
-     */
-    if (
-        imageId === undefined
-    ) {
-
-        const select =
-            document.getElementById(
-                "flowerSelect"
-            );
-
-
-        imageId =
-            parseInt(
-                select.value
-            );
-    }
-
 
     return {
 
-        imageId:
-            imageId,
+        objectId: objectId,
 
-        x:
-            0.5,
+        x: 0.5,
 
-        y:
-            0.5,
+        y: 0.5,
 
-        rotation:
-            0,
+        rotation: 0,
 
-        scale:
-            1.0
+        scale: 1.0
     };
 }
 
 
 // ============================================================
-// ADD OBJECT
+// ADD OBJECT TO PATTERN
 // ============================================================
 
 const addFlowerButton =
@@ -723,7 +659,7 @@ addFlowerButton.addEventListener(
     () => {
 
         if (
-            images.length === 0
+            uploadedObjects.length === 0
         ) {
 
             alert(
@@ -734,34 +670,23 @@ addFlowerButton.addEventListener(
         }
 
 
-        const select =
-            document.getElementById(
-                "flowerSelect"
-            );
-
-
-        const imageId =
-            parseInt(
-                select.value
-            );
-
-
         if (
-            !Number.isFinite(imageId)
+            selectedObjectId === null
         ) {
 
-            alert(
-                "Please select a PNG object."
-            );
-
-            return;
+            selectedObjectId =
+                uploadedObjects[0].id;
         }
 
 
-        flowers.push(
+        const newFlower =
             createFlower(
-                imageId
-            )
+                selectedObjectId
+            );
+
+
+        flowers.push(
+            newFlower
         );
 
 
@@ -784,7 +709,7 @@ addFlowerButton.addEventListener(
 
 
 // ============================================================
-// DELETE OBJECT
+// DELETE OBJECT FROM PATTERN
 // ============================================================
 
 const deleteFlowerButton =
@@ -1061,18 +986,6 @@ function updateControls() {
         flower.scale;
 
 
-    /*
-     * Make the image used by the selected object appear
-     * as the selected item in the PNG dropdown.
-     */
-    document.getElementById(
-        "flowerSelect"
-    ).value =
-        String(
-            flower.imageId
-        );
-
-
     updateValueDisplays();
 }
 
@@ -1191,6 +1104,7 @@ function draw() {
     /*
      * Editable view.
      */
+
     ctx.fillStyle =
         backgroundColor;
 
@@ -1204,7 +1118,7 @@ function draw() {
 
 
     /*
-     * Draw all objects.
+     * Draw every object instance.
      */
     for (
         let i = 0;
@@ -1232,21 +1146,20 @@ function drawFlower(
     selected
 ) {
 
-    const imageRecord =
-        images.find(
-            item =>
-                item.id === flower.imageId
+    const object =
+        getObjectById(
+            flower.objectId
         );
 
 
-    if (!imageRecord) {
+    if (!object) {
 
         return;
     }
 
 
     const img =
-        imageRecord.image;
+        object.image;
 
 
     const x =
@@ -1307,7 +1220,8 @@ function drawFlower(
         ctx.strokeStyle =
             "red";
 
-        ctx.lineWidth = 3;
+        ctx.lineWidth =
+            3;
 
 
         ctx.strokeRect(
@@ -1341,7 +1255,8 @@ function drawGrid() {
     ctx.strokeStyle =
         "rgba(0,0,0,0.35)";
 
-    ctx.lineWidth = 1;
+    ctx.lineWidth =
+        1;
 
     ctx.beginPath();
 
@@ -1407,7 +1322,7 @@ function drawGrid() {
 
 
 // ============================================================
-// DISCRETIZE BUTTON
+// DISCRETIZE / EDIT BUTTON
 // ============================================================
 
 document
@@ -1419,7 +1334,7 @@ document
         () => {
 
             /*
-             * Return to editable view.
+             * Return to editable mode.
              */
             if (isDiscretized) {
 
@@ -1441,7 +1356,7 @@ document
             ) {
 
                 alert(
-                    "Please add at least one object first."
+                    "Please add at least one object to the pattern."
                 );
 
                 return;
@@ -1474,10 +1389,6 @@ function discretizePattern() {
         );
 
 
-    /*
-     * The offscreen canvas represents ONLY the
-     * actual pattern area.
-     */
     offscreen.width =
         patternWidth;
 
@@ -1511,21 +1422,20 @@ function discretizePattern() {
         const flower of flowers
     ) {
 
-        const imageRecord =
-            images.find(
-                item =>
-                    item.id === flower.imageId
+        const object =
+            getObjectById(
+                flower.objectId
             );
 
 
-        if (!imageRecord) {
+        if (!object) {
 
             continue;
         }
 
 
         const img =
-            imageRecord.image;
+            object.image;
 
 
         const x =
@@ -1581,7 +1491,7 @@ function discretizePattern() {
 
 
     /*
-     * Read rendered pixels.
+     * Get rendered pixels.
      */
     const imageData =
         offCtx.getImageData(
@@ -1610,7 +1520,6 @@ function discretizePattern() {
 
 
     const bg = {
-
         r: 255,
         g: 255,
         b: 255
@@ -1689,13 +1598,19 @@ function discretizePattern() {
                         imageData.data[index];
 
                     const g =
-                        imageData.data[index + 1];
+                        imageData.data[
+                            index + 1
+                        ];
 
                     const b =
-                        imageData.data[index + 2];
+                        imageData.data[
+                            index + 2
+                        ];
 
                     const a =
-                        imageData.data[index + 3];
+                        imageData.data[
+                            index + 3
+                        ];
 
 
                     /*
@@ -1762,13 +1677,11 @@ function discretizePattern() {
     /*
      * IMPORTANT:
      *
-     * Do NOT reverse the rows.
+     * DO NOT reverse the rows.
      *
-     * This preserves the same vertical orientation as
-     * the editable PNG view.
+     * This preserves the original PNG's
+     * top-to-bottom orientation.
      */
-
-
     return pattern;
 }
 
@@ -1847,7 +1760,8 @@ function drawDiscretizedPattern() {
     ctx.strokeStyle =
         "#999999";
 
-    ctx.lineWidth = 1;
+    ctx.lineWidth =
+        1;
 
     ctx.beginPath();
 
@@ -1912,7 +1826,7 @@ function drawDiscretizedPattern() {
 
 
     /*
-     * Numbers.
+     * Number style.
      */
     ctx.fillStyle =
         "black";
@@ -2059,6 +1973,7 @@ document
             showRunCounts =
                 event.target.checked;
 
+
             draw();
         }
     );
@@ -2079,13 +1994,14 @@ document
             runDirection =
                 event.target.value;
 
+
             draw();
         }
     );
 
 
 // ============================================================
-// DRAW RUN COUNTS
+// RUN COUNTS
 // ============================================================
 
 function drawRunCounts() {
@@ -2115,9 +2031,6 @@ function drawRunCounts() {
         "middle";
 
 
-    /*
-     * Process each row.
-     */
     for (
         let row = 0;
         row < ny;
@@ -2140,7 +2053,7 @@ function drawRunCounts() {
 
 
             /*
-             * Find the end of this run.
+             * Find end of run.
              */
             while (
                 end < nx &&
@@ -2219,7 +2132,9 @@ function drawRunCounts() {
             /*
              * BOTH
              *
-             * For a one-cell run, only draw the number once.
+             * For a one-cell run, only write the
+             * number once because both ends are
+             * the same cell.
              */
             else if (
                 runDirection === "both"
@@ -2251,10 +2166,6 @@ function drawRunCounts() {
                 );
 
 
-                /*
-                 * Don't draw the same number twice for
-                 * a one-cell run.
-                 */
                 if (
                     runLength > 1
                 ) {
@@ -2270,8 +2181,7 @@ function drawRunCounts() {
             }
 
 
-            col =
-                end;
+            col = end;
         }
     }
 }
@@ -2281,9 +2191,7 @@ function drawRunCounts() {
 // CANVAS COORDINATE CONVERSION
 // ============================================================
 
-function getCanvasCoordinates(
-    event
-) {
+function getCanvasCoordinates(event) {
 
     const rect =
         canvas.getBoundingClientRect();
@@ -2370,9 +2278,25 @@ canvas.addEventListener(
             mouse.y - fy;
 
 
+        const object =
+            getObjectById(
+                flower.objectId
+            );
+
+
+        if (!object) {
+
+            return;
+        }
+
+
         const hitRadius =
-            100 *
-            flower.scale;
+            Math.max(
+                object.image.width,
+                object.image.height
+            ) *
+            flower.scale /
+            2;
 
 
         if (
@@ -2395,10 +2319,6 @@ canvas.addEventListener(
     }
 );
 
-
-// ============================================================
-// MOUSE MOVEMENT
-// ============================================================
 
 canvas.addEventListener(
     "mousemove",
@@ -2468,10 +2388,6 @@ canvas.addEventListener(
 );
 
 
-// ============================================================
-// MOUSE UP
-// ============================================================
-
 canvas.addEventListener(
     "mouseup",
     () => {
@@ -2512,16 +2428,15 @@ canvas.addEventListener(
             );
 
 
-        let closest =
-            -1;
+        let closest = -1;
 
         let closestDistance =
             Infinity;
 
 
         /*
-         * Iterate backwards so objects added later
-         * are selected first when they overlap.
+         * Search backwards so that objects
+         * drawn later are selected first.
          */
         for (
             let i = flowers.length - 1;
@@ -2531,6 +2446,18 @@ canvas.addEventListener(
 
             const flower =
                 flowers[i];
+
+
+            const object =
+                getObjectById(
+                    flower.objectId
+                );
+
+
+            if (!object) {
+
+                continue;
+            }
 
 
             const fx =
@@ -2561,8 +2488,12 @@ canvas.addEventListener(
 
 
             const hitRadius =
-                100 *
-                flower.scale;
+                Math.max(
+                    object.image.width,
+                    object.image.height
+                ) *
+                flower.scale /
+                2;
 
 
             if (
@@ -2574,6 +2505,7 @@ canvas.addEventListener(
 
                 closest =
                     i;
+
 
                 closestDistance =
                     distance;
@@ -2626,8 +2558,7 @@ document.addEventListener(
             event.key === "Escape"
         ) {
 
-            selectedFlower =
-                -1;
+            selectedFlower = -1;
 
             updateControls();
 
@@ -2666,38 +2597,4 @@ function degToRad(
         Math.PI /
         180
     );
-}
-
-
-function hexToRgb(
-    hex
-) {
-
-    hex =
-        hex.replace(
-            "#",
-            ""
-        );
-
-
-    return {
-
-        r:
-            parseInt(
-                hex.substring(0, 2),
-                16
-            ),
-
-        g:
-            parseInt(
-                hex.substring(2, 4),
-                16
-            ),
-
-        b:
-            parseInt(
-                hex.substring(4, 6),
-                16
-            )
-    };
 }
