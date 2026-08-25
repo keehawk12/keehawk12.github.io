@@ -23,31 +23,34 @@ let discretizedPattern = null;
 let uploadedImage = null;
 
 
+/*
+ * This controls whether we are currently looking
+ * at the discretized crochet grid.
+ *
+ * false = editable PNG/object view
+ * true  = discretized crochet grid
+ */
+let isDiscretized = false;
+
+
 // ============================================================
 // CANVAS LAYOUT
-// ============================================================
-//
-// The actual crochet grid occupies the center of the canvas.
-// Extra space is included around it for:
-//
-//   - left/right row numbers
-//   - top/bottom column numbers
-//
 // ============================================================
 
 const PATTERN_WIDTH = 1200;
 
 const LEFT_MARGIN = 45;
 const RIGHT_MARGIN = 45;
+
 const TOP_MARGIN = 30;
 const BOTTOM_MARGIN = 30;
 
-
-// These are calculated when the pattern is initialized.
 let patternWidth = PATTERN_WIDTH;
+
 let patternHeight = 0;
 
 let patternX = LEFT_MARGIN;
+
 let patternY = TOP_MARGIN;
 
 
@@ -71,7 +74,9 @@ const nyInput =
     document.getElementById("nyInput");
 
 const backgroundColorInput =
-    document.getElementById("backgroundColorInput");
+    document.getElementById(
+        "backgroundColorInput"
+    );
 
 const pngInput =
     document.getElementById("pngInput");
@@ -137,6 +142,7 @@ startButton.addEventListener(
 
 
         nx = Math.round(nx);
+
         ny = Math.round(ny);
 
 
@@ -199,13 +205,15 @@ function initializeCanvas() {
 
     patternHeight =
         Math.round(
-            patternWidth * ny / nx
+            patternWidth *
+            ny /
+            nx
         );
 
 
     /*
-     * The actual canvas is larger than the grid
-     * so that labels fit inside the canvas.
+     * The canvas is larger than the pattern itself
+     * so the row/column labels fit inside the canvas.
      */
     canvas.width =
         patternWidth +
@@ -244,7 +252,16 @@ backgroundColorControl.addEventListener(
         backgroundColor =
             backgroundColorControl.value;
 
+
+        /*
+         * Changing the background invalidates
+         * the discretized representation.
+         */
         discretizedPattern = null;
+
+        isDiscretized = false;
+
+        updateDiscretizeButton();
 
         draw();
     }
@@ -322,7 +339,17 @@ function loadPNG(file) {
 
 
                     /*
-                     * Clear existing objects.
+                     * Loading a new PNG returns us
+                     * to editable mode.
+                     */
+                    discretizedPattern = null;
+
+                    isDiscretized = false;
+
+
+                    /*
+                     * Clear existing objects because
+                     * they belonged to the previous PNG.
                      */
                     flowers = [];
 
@@ -330,8 +357,7 @@ function loadPNG(file) {
 
 
                     /*
-                     * Automatically create one
-                     * object from the uploaded PNG.
+                     * Automatically create one object.
                      */
                     flowers.push(
                         createFlower()
@@ -343,10 +369,7 @@ function loadPNG(file) {
 
                     updateControls();
 
-
-                    discretizedPattern =
-                        null;
-
+                    updateDiscretizeButton();
 
                     draw();
                 };
@@ -415,10 +438,18 @@ addFlowerButton.addEventListener(
             flowers.length - 1;
 
 
+        /*
+         * Changing the object means the old
+         * discretization is no longer valid.
+         */
         discretizedPattern = null;
+
+        isDiscretized = false;
 
 
         updateControls();
+
+        updateDiscretizeButton();
 
         draw();
     }
@@ -472,8 +503,12 @@ deleteFlowerButton.addEventListener(
 
         discretizedPattern = null;
 
+        isDiscretized = false;
+
 
         updateControls();
+
+        updateDiscretizeButton();
 
         draw();
     }
@@ -505,7 +540,8 @@ const scaleSlider =
     );
 
 
-// X
+// X POSITION
+
 xSlider.addEventListener(
     "input",
     () => {
@@ -525,14 +561,20 @@ xSlider.addEventListener(
 
         discretizedPattern = null;
 
+        isDiscretized = false;
+
+
         updateValueDisplays();
+
+        updateDiscretizeButton();
 
         draw();
     }
 );
 
 
-// Y
+// Y POSITION
+
 ySlider.addEventListener(
     "input",
     () => {
@@ -552,14 +594,20 @@ ySlider.addEventListener(
 
         discretizedPattern = null;
 
+        isDiscretized = false;
+
+
         updateValueDisplays();
+
+        updateDiscretizeButton();
 
         draw();
     }
 );
 
 
-// Rotation
+// ROTATION
+
 rotationSlider.addEventListener(
     "input",
     () => {
@@ -579,14 +627,20 @@ rotationSlider.addEventListener(
 
         discretizedPattern = null;
 
+        isDiscretized = false;
+
+
         updateValueDisplays();
+
+        updateDiscretizeButton();
 
         draw();
     }
 );
 
 
-// Scale
+// SCALE
+
 scaleSlider.addEventListener(
     "input",
     () => {
@@ -606,7 +660,12 @@ scaleSlider.addEventListener(
 
         discretizedPattern = null;
 
+        isDiscretized = false;
+
+
         updateValueDisplays();
+
+        updateDiscretizeButton();
 
         draw();
     }
@@ -704,7 +763,8 @@ function updateValueDisplays() {
     ).textContent =
         Number(
             flower.rotation
-        ).toFixed(0) + "°";
+        ).toFixed(0) +
+        "°";
 
 
     document.getElementById(
@@ -713,6 +773,31 @@ function updateValueDisplays() {
         Number(
             flower.scale
         ).toFixed(2);
+}
+
+
+// ============================================================
+// UPDATE DISCRETIZE BUTTON
+// ============================================================
+
+function updateDiscretizeButton() {
+
+    const button =
+        document.getElementById(
+            "discretizePattern"
+        );
+
+
+    if (isDiscretized) {
+
+        button.textContent =
+            "Edit Pattern";
+
+    } else {
+
+        button.textContent =
+            "Discretize Pattern";
+    }
 }
 
 
@@ -736,8 +821,23 @@ function draw() {
 
 
     /*
+     * If we are viewing the discretized pattern,
+     * draw ONLY that representation.
+     */
+    if (
+        isDiscretized &&
+        discretizedPattern
+    ) {
+
+        drawDiscretizedPattern();
+
+        return;
+    }
+
+
+    /*
      * --------------------------------------------------------
-     * ORIGINAL PATTERN VIEW
+     * EDITABLE VIEW
      * --------------------------------------------------------
      */
 
@@ -754,27 +854,8 @@ function draw() {
 
 
     /*
-     * --------------------------------------------------------
-     * DISCRETIZED VIEW
-     * --------------------------------------------------------
+     * Draw all objects.
      */
-
-    if (
-        discretizedPattern
-    ) {
-
-        drawDiscretizedPattern();
-
-        return;
-    }
-
-
-    /*
-     * --------------------------------------------------------
-     * Draw original objects.
-     * --------------------------------------------------------
-     */
-
     for (
         let i = 0;
         i < flowers.length;
@@ -789,7 +870,7 @@ function draw() {
 
 
     /*
-     * Draw grid over the pattern area.
+     * Draw grid.
      */
     drawGrid();
 }
@@ -813,10 +894,6 @@ function drawFlower(
         uploadedImage;
 
 
-    /*
-     * Object coordinates are relative to
-     * the actual pattern area.
-     */
     const x =
         patternX +
         flower.x *
@@ -894,7 +971,7 @@ function drawFlower(
 
 
 // ============================================================
-// DRAW GRID
+// DRAW EDITABLE GRID
 // ============================================================
 
 function drawGrid() {
@@ -915,7 +992,7 @@ function drawGrid() {
 
 
     /*
-     * Vertical grid lines.
+     * Vertical lines.
      */
     for (
         let i = 0;
@@ -943,7 +1020,7 @@ function drawGrid() {
 
 
     /*
-     * Horizontal grid lines.
+     * Horizontal lines.
      */
     for (
         let j = 0;
@@ -986,6 +1063,37 @@ document
         "click",
         () => {
 
+            /*
+             * ------------------------------------------------
+             * EDIT MODE
+             * ------------------------------------------------
+             *
+             * If currently showing the discretized pattern,
+             * simply return to the editable object view.
+             *
+             * IMPORTANT:
+             * We DO NOT delete discretizedPattern here.
+             * This allows the user to return to the exact
+             * same discretization later.
+             */
+            if (isDiscretized) {
+
+                isDiscretized = false;
+
+                updateDiscretizeButton();
+
+                draw();
+
+                return;
+            }
+
+
+            /*
+             * ------------------------------------------------
+             * DISCRETIZE MODE
+             * ------------------------------------------------
+             */
+
             if (!uploadedImage) {
 
                 alert(
@@ -999,6 +1107,11 @@ document
             discretizedPattern =
                 discretizePattern();
 
+
+            isDiscretized = true;
+
+
+            updateDiscretizeButton();
 
             draw();
         }
@@ -1018,8 +1131,10 @@ function discretizePattern() {
 
 
     /*
-     * Only the actual pattern area needs
-     * to be rendered for discretization.
+     * IMPORTANT:
+     *
+     * The offscreen canvas represents ONLY the
+     * actual crochet pattern area.
      */
     offscreen.width =
         patternWidth;
@@ -1137,16 +1252,20 @@ function discretizePattern() {
 
     const pattern =
         Array.from(
-            { length: ny },
+            {
+                length: ny
+            },
             () =>
                 Array(nx).fill(0)
         );
 
 
     /*
-     * White is ALWAYS the discretization
-     * background.
+     * --------------------------------------------------------
+     * WHITE IS THE DISCRETIZATION BACKGROUND
+     * --------------------------------------------------------
      */
+
     const bg = {
         r: 255,
         g: 255,
@@ -1239,8 +1358,7 @@ function discretizePattern() {
 
 
                     /*
-                     * Transparent pixels count
-                     * as background.
+                     * Transparent pixels are background.
                      */
                     if (
                         a < 20
@@ -1301,20 +1419,22 @@ function discretizePattern() {
 
 
     /*
-     * --------------------------------------------------------
-     * FLIP Y DIRECTION
-     * --------------------------------------------------------
+     * ========================================================
+     * IMPORTANT — DO NOT FLIP THE PATTERN
+     * ========================================================
      *
-     * Canvas coordinates have Y increasing downward.
+     * The previous version contained:
      *
-     * Crochet grid coordinates are displayed with
-     * the opposite Y orientation.
+     *     pattern.reverse();
      *
-     * Reverse the rows once here.
-     * --------------------------------------------------------
+     * That was the source of the Y-direction flip.
+     *
+     * We intentionally DO NOT reverse the rows here.
+     *
+     * The discretized pattern therefore has the exact same
+     * top-to-bottom orientation as the PNG/object view.
+     * ========================================================
      */
-
-    pattern.reverse();
 
 
     return pattern;
@@ -1397,12 +1517,21 @@ function drawDiscretizedPattern() {
 
     /*
      * --------------------------------------------------------
-     * GRID
+     * GRAY GRIDLINES
+     * --------------------------------------------------------
+     *
+     * These are intentionally gray rather than white.
+     *
+     * This makes the grid visible on BOTH:
+     *
+     *   - black cells
+     *   - white cells
+     *
      * --------------------------------------------------------
      */
 
     ctx.strokeStyle =
-        "rgba(255,255,255,0.35)";
+        "#999999";
 
     ctx.lineWidth = 1;
 
@@ -1483,7 +1612,7 @@ function drawDiscretizedPattern() {
 
     /*
      * --------------------------------------------------------
-     * ROW NUMBERS: LEFT + RIGHT
+     * ROW NUMBERS — LEFT AND RIGHT
      * --------------------------------------------------------
      */
 
@@ -1542,7 +1671,7 @@ function drawDiscretizedPattern() {
 
     /*
      * --------------------------------------------------------
-     * COLUMN NUMBERS: TOP + BOTTOM
+     * COLUMN NUMBERS — TOP AND BOTTOM
      * --------------------------------------------------------
      */
 
@@ -1662,6 +1791,7 @@ function drawRunCounts() {
     if (
         !discretizedPattern
     ) {
+
         return;
     }
 
@@ -1684,11 +1814,8 @@ function drawRunCounts() {
 
 
     /*
-     * --------------------------------------------------------
-     * PROCESS EACH ROW
-     * --------------------------------------------------------
+     * Process every row.
      */
-
     for (
         let row = 0;
         row < ny;
@@ -1713,7 +1840,7 @@ function drawRunCounts() {
 
 
             /*
-             * Find end of current run.
+             * Find end of run.
              */
             while (
                 end < nx &&
@@ -1728,18 +1855,20 @@ function drawRunCounts() {
                 end - col;
 
 
+            const y =
+                patternY +
+                row * cellHeight +
+                cellHeight / 2;
+
+
             /*
              * ------------------------------------------------
-             * ONE-CELL RUN
+             * ONE-CELL RUN WITH "BOTH"
              * ------------------------------------------------
              *
-             * If the user selected BOTH, do not draw the
-             * same number twice in the same cell.
-             *
-             * Instead, draw it once in the center.
-             * ------------------------------------------------
+             * Only draw the number once because left and
+             * right would be the exact same cell.
              */
-
             if (
                 runDirection === "both" &&
                 runLength === 1
@@ -1749,12 +1878,6 @@ function drawRunCounts() {
                     patternX +
                     col * cellWidth +
                     cellWidth / 2;
-
-
-                const y =
-                    patternY +
-                    row * cellHeight +
-                    cellHeight / 2;
 
 
                 ctx.textAlign =
@@ -1787,12 +1910,6 @@ function drawRunCounts() {
                     cellWidth / 2;
 
 
-                const y =
-                    patternY +
-                    row * cellHeight +
-                    cellHeight / 2;
-
-
                 ctx.textAlign =
                     "center";
 
@@ -1822,12 +1939,6 @@ function drawRunCounts() {
                     (end - 1) *
                     cellWidth +
                     cellWidth / 2;
-
-
-                const y =
-                    patternY +
-                    row * cellHeight +
-                    cellHeight / 2;
 
 
                 ctx.textAlign =
@@ -1867,12 +1978,6 @@ function drawRunCounts() {
                     cellWidth / 2;
 
 
-                const y =
-                    patternY +
-                    row * cellHeight +
-                    cellHeight / 2;
-
-
                 ctx.textAlign =
                     "center";
 
@@ -1910,12 +2015,6 @@ function drawRunCounts() {
                     cellWidth / 2;
 
 
-                const y =
-                    patternY +
-                    row * cellHeight +
-                    cellHeight / 2;
-
-
                 ctx.textAlign =
                     "center";
 
@@ -1936,38 +2035,22 @@ function drawRunCounts() {
              * ------------------------------------------------
              *
              * For runs >= 2, put the number at both ends.
-             *
-             * One-cell runs were already handled above.
-             * ------------------------------------------------
              */
-
             else if (
                 runDirection === "both"
             ) {
 
-                /*
-                 * LEFT number
-                 */
                 const leftX =
                     patternX +
                     col * cellWidth +
                     cellWidth / 2;
 
 
-                /*
-                 * RIGHT number
-                 */
                 const rightX =
                     patternX +
                     (end - 1) *
                     cellWidth +
                     cellWidth / 2;
-
-
-                const y =
-                    patternY +
-                    row * cellHeight +
-                    cellHeight / 2;
 
 
                 ctx.textAlign =
@@ -2002,7 +2085,7 @@ function drawRunCounts() {
 
 
 // ============================================================
-// MOUSE COORDINATE CONVERSION
+// CANVAS COORDINATE CONVERSION
 // ============================================================
 
 function getCanvasCoordinates(event) {
@@ -2053,8 +2136,12 @@ canvas.addEventListener(
     "mousedown",
     (event) => {
 
+        /*
+         * Objects cannot be dragged while viewing
+         * the discretized grid.
+         */
         if (
-            discretizedPattern ||
+            isDiscretized ||
             selectedFlower < 0 ||
             !uploadedImage
         ) {
@@ -2126,7 +2213,7 @@ canvas.addEventListener(
         if (
             !dragging ||
             selectedFlower < 0 ||
-            discretizedPattern
+            isDiscretized
         ) {
 
             return;
@@ -2173,11 +2260,17 @@ canvas.addEventListener(
             );
 
 
-        discretizedPattern =
-            null;
+        /*
+         * The current discretization is now stale.
+         */
+        discretizedPattern = null;
+
+        isDiscretized = false;
 
 
         updateControls();
+
+        updateDiscretizeButton();
 
         draw();
     }
@@ -2211,7 +2304,7 @@ canvas.addEventListener(
     (event) => {
 
         if (
-            discretizedPattern ||
+            isDiscretized ||
             !uploadedImage
         ) {
 
@@ -2321,7 +2414,7 @@ document.addEventListener(
 
             if (
                 selectedFlower >= 0 &&
-                !discretizedPattern
+                !isDiscretized
             ) {
 
                 deleteFlowerButton.click();
