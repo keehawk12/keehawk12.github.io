@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crochet Pattern Generator</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app">
+    <section class="workspace">
+      <div class="canvas-wrap">
+        <canvas id="patternCanvas"></canvas>
+      </div>
+
+      <aside class="panel">
+        <button id="uploadButton" class="primary">Add Flower</button>
+        <input id="flowerFile" type="file" accept="image/*" hidden>
+
+        <label>Selected Flower</label>
+        <select id="flowerMenu">
+          <option value="-1">None</option>
+        </select>
+
+        <div class="control-group">
+          <label for="xDial">X Position</label>
+          <input id="xDial" type="range">
+          <output id="xValue">29.00</output>
+        </div>
+
+        <div class="control-group">
+          <label for="yDial">Y Position</label>
+          <input id="yDial" type="range">
+          <output id="yValue">15.00</output>
+        </div>
+
+        <div class="control-group">
+          <label for="rotationDial">Rotation (deg)</label>
+          <input id="rotationDial" type="range" min="-180" max="180" step="0.1" value="0">
+          <output id="rotationValue">0.0 deg</output>
+        </div>
+
+        <div class="control-group">
+          <label for="scaleDial">Size</label>
+          <input id="scaleDial" type="range" min="0.01" max="10" step="0.01" value="2">
+          <output id="scaleValue">2.00</output>
+        </div>
+
+        <button id="deleteButton">Delete Flower</button>
+
+        <label class="checkbox-row">
+          <input id="runCountCheckbox" type="checkbox">
+          <span>Show Run Counts</span>
+        </label>
+
+        <div class="direction-row">
+          <label for="runDirection">Run Direction</label>
+          <select id="runDirection">
+            <option value="1">Left</option>
+            <option value="2">Right</option>
+            <option value="3">Alternating (Left First)</option>
+            <option value="4">Alternating (Right First)</option>
+            <option value="5">Both Left and Right</option>
+          </select>
+        </div>
+
+        <button id="discretizeButton" class="primary">Discretize Pattern</button>
+
+        <div class="hint">
+          Add one or more images, then position, rotate, and resize them on the canvas.
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <div id="modal" class="modal hidden">
+    <div class="modal-content">
+      <button id="closeModal" class="close-button" aria-label="Close">&times;</button>
+      <canvas id="gridCanvas"></canvas>
+      <div class="grid-actions">
+        <button id="downloadPng">Download PNG</button>
+        <button id="downloadJson">Save Pattern Data</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
