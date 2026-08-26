@@ -22,17 +22,17 @@ let ctx;
 //
 // Each entry represents an AVAILABLE image.
 //
-// Example:
+// Default images:
 //
 // {
-//     id: "default-flower.png",
+//     id: "default-...",
 //     name: "flower.png",
 //     source: "default",
 //     src: "default/flower.png",
 //     image: Image
 // }
 //
-// Uploaded images are added to this same library.
+// Uploaded images are added directly to the object selector.
 // ============================================================
 
 let objectLibrary = [];
@@ -40,18 +40,6 @@ let objectLibrary = [];
 
 // ============================================================
 // OBJECTS ACTUALLY PLACED IN THE PATTERN
-// ============================================================
-//
-// Multiple objects can reference the same image.
-//
-// Example:
-//
-// flower.png
-// flower.png
-// star.png
-// flower.png
-//
-// Each one has independent position, rotation, and scale.
 // ============================================================
 
 let flowers = [];
@@ -130,6 +118,46 @@ canvas =
 
 ctx =
     canvas.getContext("2d");
+
+
+// ============================================================
+// OBJECT SELECTOR ELEMENTS
+// ============================================================
+//
+// The new selector consists of:
+//
+// objectSelector
+//     The outer selector container.
+//
+// objectSelectorButton
+//     The visible button showing the selected object.
+//
+// objectSelectorMenu
+//     The dropdown/folder menu.
+//
+// ============================================================
+
+const objectSelector =
+    document.getElementById(
+        "objectSelector"
+    );
+
+const objectSelectorButton =
+    document.getElementById(
+        "objectSelectorButton"
+    );
+
+const objectSelectorMenu =
+    document.getElementById(
+        "objectSelectorMenu"
+    );
+
+
+// ============================================================
+// CURRENT OBJECT SELECTION
+// ============================================================
+
+let selectedObjectId = "";
 
 
 // ============================================================
@@ -227,9 +255,32 @@ startButton.addEventListener(
             pngInput.files.length > 0
         ) {
 
-            await loadPNG(
-                pngInput.files[0]
-            );
+            const object =
+                await loadPNG(
+                    pngInput.files[0]
+                );
+
+
+            if (object) {
+
+                /*
+                 * Preserve previous behavior:
+                 * automatically place uploaded PNG.
+                 */
+                flowers.push(
+                    createFlower(
+                        object.id
+                    )
+                );
+
+
+                selectedFlower =
+                    flowers.length - 1;
+
+
+                selectedObjectId =
+                    object.id;
+            }
         }
 
 
@@ -286,10 +337,13 @@ function initializeCanvas() {
 // LOAD DEFAULT IMAGES
 // ============================================================
 //
-// The browser cannot directly ask a folder for its
-// contents. Therefore we use:
+// Default images are located in:
 //
-// default/images.json
+//     default/
+//
+// Their filenames are specified by:
+//
+//     default/images.json
 //
 // Example:
 //
@@ -299,7 +353,7 @@ function initializeCanvas() {
 //     "heart.png"
 // ]
 //
-// This allows you to add as many PNGs as you want.
+// No list needs to be maintained in app.js.
 // ============================================================
 
 async function loadDefaultImages() {
@@ -363,13 +417,6 @@ async function loadDefaultImages() {
             "Default image loading failed:",
             error
         );
-
-
-        /*
-         * This is intentionally only a warning.
-         * The application can still be used with
-         * uploaded PNGs.
-         */
     }
 }
 
@@ -516,14 +563,7 @@ backgroundColorControl.addEventListener(
             backgroundColorControl.value;
 
 
-        discretizedPattern =
-            null;
-
-        isDiscretized =
-            false;
-
-
-        updateDiscretizeButton();
+        invalidateDiscretization();
 
         draw();
     }
@@ -562,16 +602,22 @@ objectUpload.addEventListener(
 
         if (object) {
 
-            document.getElementById(
-                "uploadedFileName"
-            ).textContent =
-                file.name;
+            const uploadedFileName =
+                document.getElementById(
+                    "uploadedFileName"
+                );
+
+
+            if (uploadedFileName) {
+
+                uploadedFileName.textContent =
+                    file.name;
+            }
 
 
             /*
-             * Automatically add the newly uploaded
-             * image as an object, preserving the
-             * behavior of the previous version.
+             * Automatically add the uploaded
+             * image as an object.
              */
             flowers.push(
                 createFlower(
@@ -584,20 +630,13 @@ objectUpload.addEventListener(
                 flowers.length - 1;
 
 
-            discretizedPattern =
-                null;
-
-            isDiscretized =
-                false;
-
-
-            updateObjectDropdown();
-
-            document.getElementById(
-                "flowerSelect"
-            ).value =
+            selectedObjectId =
                 object.id;
 
+
+            invalidateDiscretization();
+
+            updateObjectDropdown();
 
             updateControls();
 
@@ -613,10 +652,8 @@ objectUpload.addEventListener(
 // LOAD PNG
 // ============================================================
 //
-// Unlike the old version, this does NOT clear
-// flowers or objectLibrary.
-//
-// It simply adds the PNG to the library.
+// Uploaded PNGs go directly into the object library.
+// They are NOT placed inside an "Uploaded" folder.
 // ============================================================
 
 async function loadPNG(file) {
@@ -653,9 +690,6 @@ async function loadPNG(file) {
                             await loadImage(src);
 
 
-                        /*
-                         * Generate a unique ID.
-                         */
                         const object = {
 
                             id:
@@ -715,58 +749,31 @@ async function loadPNG(file) {
 
 
 // ============================================================
-// OBJECT DROPDOWN
+// OBJECT DROPDOWN / FOLDER SELECTOR
 // ============================================================
-
-const flowerSelect =
-    document.getElementById(
-        "flowerSelect"
-    );
-
 
 function updateObjectDropdown() {
 
-    /*
-     * Remember the current selection.
-     */
-    const previousValue =
-        flowerSelect.value;
-
-
-    /*
-     * Clear dropdown.
-     */
-    flowerSelect.innerHTML = "";
-
-
     if (
-        objectLibrary.length === 0
+        !objectSelectorMenu ||
+        !objectSelectorButton
     ) {
-
-        const option =
-            document.createElement(
-                "option"
-            );
-
-
-        option.value = "";
-
-        option.textContent =
-            "No PNGs available";
-
-
-        flowerSelect.appendChild(
-            option
-        );
-
 
         return;
     }
 
 
-    // ========================================================
-    // DEFAULT IMAGES
-    // ========================================================
+    /*
+     * Clear the menu.
+     */
+    objectSelectorMenu.innerHTML = "";
+
+
+    /*
+     * --------------------------------------------------------
+     * DEFAULT FOLDER
+     * --------------------------------------------------------
+     */
 
     const defaultObjects =
         objectLibrary.filter(
@@ -779,55 +786,150 @@ function updateObjectDropdown() {
         defaultObjects.length > 0
     ) {
 
-        const defaultGroup =
+        const defaultFolder =
             document.createElement(
-                "optgroup"
+                "div"
             );
 
 
-        defaultGroup.label =
-            "Default";
+        defaultFolder.className =
+            "object-folder";
 
 
+        /*
+         * Folder header.
+         */
+        const folderHeader =
+            document.createElement(
+                "button"
+            );
+
+
+        folderHeader.type =
+            "button";
+
+
+        folderHeader.className =
+            "object-folder-header";
+
+
+        folderHeader.innerHTML =
+            '<span class="folder-arrow">▶</span>' +
+            '<span>Default</span>';
+
+
+        /*
+         * Folder contents.
+         */
+        const folderContents =
+            document.createElement(
+                "div"
+            );
+
+
+        folderContents.className =
+            "object-folder-contents";
+
+
+        /*
+         * Start CLOSED.
+         */
+        folderContents.classList.add(
+            "collapsed"
+        );
+
+
+        /*
+         * Toggle folder.
+         */
+        folderHeader.addEventListener(
+            "click",
+            (event) => {
+
+                event.stopPropagation();
+
+
+                const isCollapsed =
+                    folderContents.classList.contains(
+                        "collapsed"
+                    );
+
+
+                if (
+                    isCollapsed
+                ) {
+
+                    folderContents.classList.remove(
+                        "collapsed"
+                    );
+
+                    folderHeader
+                        .querySelector(
+                            ".folder-arrow"
+                        )
+                        .textContent =
+                        "▼";
+
+                } else {
+
+                    folderContents.classList.add(
+                        "collapsed"
+                    );
+
+                    folderHeader
+                        .querySelector(
+                            ".folder-arrow"
+                        )
+                        .textContent =
+                        "▶";
+                }
+            }
+        );
+
+
+        /*
+         * Add default objects.
+         */
         for (
             const object of defaultObjects
         ) {
 
-            const option =
-                document.createElement(
-                    "option"
+            const item =
+                createObjectMenuItem(
+                    object
                 );
 
 
-            option.value =
-                object.id;
-
-
-            option.textContent =
-                object.name;
-
-
-            defaultGroup.appendChild(
-                option
+            folderContents.appendChild(
+                item
             );
         }
 
 
-        flowerSelect.appendChild(
-            defaultGroup
+        defaultFolder.appendChild(
+            folderHeader
+        );
+
+
+        defaultFolder.appendChild(
+            folderContents
+        );
+
+
+        objectSelectorMenu.appendChild(
+            defaultFolder
         );
     }
 
 
-    // ========================================================
-    // UPLOADED IMAGES
-    // ========================================================
-    //
-    // Uploaded images are intentionally NOT placed
-    // inside an "Uploaded" group.
-    //
-    // They appear directly in the dropdown.
-    // ========================================================
+    /*
+     * --------------------------------------------------------
+     * UPLOADED OBJECTS
+     * --------------------------------------------------------
+     *
+     * Uploaded objects are placed directly in
+     * the main object selector.
+     */
 
     const uploadedObjects =
         objectLibrary.filter(
@@ -840,72 +942,400 @@ function updateObjectDropdown() {
         const object of uploadedObjects
     ) {
 
-        const option =
-            document.createElement(
-                "option"
+        const item =
+            createObjectMenuItem(
+                object
             );
 
 
-        option.value =
-            object.id;
-
-
-        option.textContent =
-            object.name;
-
-
-        flowerSelect.appendChild(
-            option
+        objectSelectorMenu.appendChild(
+            item
         );
     }
 
 
-    // ========================================================
-    // RESTORE PREVIOUS SELECTION
-    // ========================================================
+    /*
+     * --------------------------------------------------------
+     * NO OBJECTS
+     * --------------------------------------------------------
+     */
 
-    const stillExists =
-        objectLibrary.some(
-            object =>
-                object.id === previousValue
+    if (
+        objectLibrary.length === 0
+    ) {
+
+        const empty =
+            document.createElement(
+                "div"
+            );
+
+
+        empty.className =
+            "object-menu-empty";
+
+
+        empty.textContent =
+            "No PNGs available";
+
+
+        objectSelectorMenu.appendChild(
+            empty
         );
 
 
+        objectSelectorButton.textContent =
+            "No PNGs available";
+
+
+        return;
+    }
+
+
+    /*
+     * --------------------------------------------------------
+     * RESTORE CURRENT SELECTION
+     * --------------------------------------------------------
+     */
+
     if (
-        stillExists
+        selectedObjectId
     ) {
 
-        flowerSelect.value =
-            previousValue;
+        const selected =
+            getLibraryObject(
+                selectedObjectId
+            );
 
-    } else if (
-        flowerSelect.options.length > 0
+
+        if (
+            selected
+        ) {
+
+            updateObjectSelectorButton(
+                selected
+            );
+
+            return;
+        }
+    }
+
+
+    /*
+     * If there is no selection yet,
+     * use the first object.
+     */
+    const firstObject =
+        objectLibrary[0];
+
+
+    selectedObjectId =
+        firstObject.id;
+
+
+    updateObjectSelectorButton(
+        firstObject
+    );
+}
+
+
+// ============================================================
+// CREATE OBJECT MENU ITEM
+// ============================================================
+
+function createObjectMenuItem(
+    object
+) {
+
+    const item =
+        document.createElement(
+            "button"
+        );
+
+
+    item.type =
+        "button";
+
+
+    item.className =
+        "object-menu-item";
+
+
+    item.dataset.objectId =
+        object.id;
+
+
+    /*
+     * Thumbnail.
+     */
+    const thumbnail =
+        document.createElement(
+            "img"
+        );
+
+
+    thumbnail.src =
+        object.src;
+
+
+    thumbnail.alt =
+        object.name;
+
+
+    thumbnail.className =
+        "object-menu-thumbnail";
+
+
+    /*
+     * Filename.
+     */
+    const name =
+        document.createElement(
+            "span"
+        );
+
+
+    name.className =
+        "object-menu-name";
+
+
+    name.textContent =
+        object.name;
+
+
+    item.appendChild(
+        thumbnail
+    );
+
+
+    item.appendChild(
+        name
+    );
+
+
+    /*
+     * Select object.
+     */
+    item.addEventListener(
+        "click",
+        () => {
+
+            selectedObjectId =
+                object.id;
+
+
+            updateObjectSelectorButton(
+                object
+            );
+
+
+            closeObjectSelector();
+
+
+            /*
+             * If an object is currently selected
+             * in the pattern, changing the selector
+             * should NOT alter that object.
+             *
+             * It only determines which image is
+             * used when Add Object is clicked.
+             */
+            if (
+                selectedFlower >= 0
+            ) {
+
+                /*
+                 * Leave existing object unchanged.
+                 */
+            }
+        }
+    );
+
+
+    return item;
+}
+
+
+// ============================================================
+// UPDATE SELECTOR BUTTON
+// ============================================================
+
+function updateObjectSelectorButton(
+    object
+) {
+
+    if (
+        !objectSelectorButton
     ) {
 
-        flowerSelect.selectedIndex =
-            0;
+        return;
+    }
+
+
+    objectSelectorButton.innerHTML = "";
+
+
+    const thumbnail =
+        document.createElement(
+            "img"
+        );
+
+
+    thumbnail.src =
+        object.src;
+
+
+    thumbnail.alt =
+        object.name;
+
+
+    thumbnail.className =
+        "object-selector-thumbnail";
+
+
+    const name =
+        document.createElement(
+            "span"
+        );
+
+
+    name.className =
+        "object-selector-name";
+
+
+    name.textContent =
+        object.name;
+
+
+    const arrow =
+        document.createElement(
+            "span"
+        );
+
+
+    arrow.className =
+        "object-selector-arrow";
+
+
+    arrow.textContent =
+        "▼";
+
+
+    objectSelectorButton.appendChild(
+        thumbnail
+    );
+
+
+    objectSelectorButton.appendChild(
+        name
+    );
+
+
+    objectSelectorButton.appendChild(
+        arrow
+    );
+}
+
+
+// ============================================================
+// OPEN / CLOSE OBJECT SELECTOR
+// ============================================================
+
+function openObjectSelector() {
+
+    if (
+        !objectSelectorMenu
+    ) {
+
+        return;
+    }
+
+
+    objectSelectorMenu.classList.add(
+        "open"
+    );
+
+
+    objectSelector.classList.add(
+        "open"
+    );
+}
+
+
+function closeObjectSelector() {
+
+    if (
+        !objectSelectorMenu
+    ) {
+
+        return;
+    }
+
+
+    objectSelectorMenu.classList.remove(
+        "open"
+    );
+
+
+    objectSelector.classList.remove(
+        "open"
+    );
+}
+
+
+function toggleObjectSelector() {
+
+    if (
+        objectSelectorMenu.classList.contains(
+            "open"
+        )
+    ) {
+
+        closeObjectSelector();
+
+    } else {
+
+        openObjectSelector();
     }
 }
 
 
 // ============================================================
-// DROPDOWN SELECTION
-// ============================================================
-//
-// Selecting an image in the dropdown does NOT change
-// existing objects.
-//
-// It simply determines which image will be added when
-// "Add Object" is pressed.
+// SELECTOR BUTTON CLICK
 // ============================================================
 
-flowerSelect.addEventListener(
-    "change",
-    () => {
+if (
+    objectSelectorButton
+) {
 
-        /*
-         * Nothing needs to happen to existing objects.
-         */
+    objectSelectorButton.addEventListener(
+        "click",
+        (event) => {
+
+            event.stopPropagation();
+
+            toggleObjectSelector();
+        }
+    );
+}
+
+
+// ============================================================
+// CLOSE SELECTOR WHEN CLICKING OUTSIDE
+// ============================================================
+
+document.addEventListener(
+    "click",
+    (event) => {
+
+        if (
+            objectSelector &&
+            !objectSelector.contains(
+                event.target
+            )
+        ) {
+
+            closeObjectSelector();
+        }
     }
 );
 
@@ -953,7 +1383,7 @@ addFlowerButton.addEventListener(
     () => {
 
         const imageId =
-            flowerSelect.value;
+            selectedObjectId;
 
 
         if (
@@ -988,8 +1418,6 @@ addFlowerButton.addEventListener(
 
         /*
          * Add a NEW object.
-         *
-         * Existing objects remain untouched.
          */
         flowers.push(
             createFlower(
@@ -1002,12 +1430,7 @@ addFlowerButton.addEventListener(
             flowers.length - 1;
 
 
-        discretizedPattern =
-            null;
-
-        isDiscretized =
-            false;
-
+        invalidateDiscretization();
 
         updateControls();
 
@@ -1064,12 +1487,7 @@ deleteFlowerButton.addEventListener(
         }
 
 
-        discretizedPattern =
-            null;
-
-        isDiscretized =
-            false;
-
+        invalidateDiscretization();
 
         updateControls();
 
@@ -1325,11 +1743,12 @@ function updateControls() {
 
 
     /*
-     * Update object dropdown to show
-     * the image used by the selected object.
+     * Do NOT change selectedObjectId here.
+     *
+     * The selector represents the object that will
+     * be added next, not necessarily the currently
+     * selected object.
      */
-    flowerSelect.value =
-        flower.imageId;
 
 
     xSlider.value =
@@ -1448,12 +1867,6 @@ function draw() {
     );
 
 
-    /*
-     * ========================================================
-     * DISCRETIZED VIEW
-     * ========================================================
-     */
-
     if (
         isDiscretized &&
         discretizedPattern
@@ -1464,12 +1877,6 @@ function draw() {
         return;
     }
 
-
-    /*
-     * ========================================================
-     * EDITABLE VIEW
-     * ========================================================
-     */
 
     ctx.fillStyle =
         backgroundColor;
@@ -1483,9 +1890,6 @@ function draw() {
     );
 
 
-    /*
-     * Draw every object.
-     */
     for (
         let i = 0;
         i < flowers.length;
@@ -1563,20 +1967,14 @@ function drawFlower(
 
 
     ctx.drawImage(
-
         img,
-
         -width / 2,
         -height / 2,
-
         width,
         height
     );
 
 
-    /*
-     * Selection rectangle.
-     */
     if (
         selected
     ) {
@@ -1589,10 +1987,8 @@ function drawFlower(
 
 
         ctx.strokeRect(
-
             -width / 2,
             -height / 2,
-
             width,
             height
         );
@@ -1627,9 +2023,6 @@ function drawGrid() {
     ctx.beginPath();
 
 
-    /*
-     * Vertical lines.
-     */
     for (
         let i = 0;
         i <= nx;
@@ -1655,9 +2048,6 @@ function drawGrid() {
     }
 
 
-    /*
-     * Horizontal lines.
-     */
     for (
         let j = 0;
         j <= ny;
@@ -1699,12 +2089,6 @@ document
         "click",
         () => {
 
-            /*
-             * ------------------------------------------------
-             * RETURN TO EDIT MODE
-             * ------------------------------------------------
-             */
-
             if (
                 isDiscretized
             ) {
@@ -1720,12 +2104,6 @@ document
                 return;
             }
 
-
-            /*
-             * ------------------------------------------------
-             * DISCRETIZE
-             * ------------------------------------------------
-             */
 
             if (
                 objectLibrary.length === 0 ||
@@ -1767,13 +2145,6 @@ function discretizePattern() {
         );
 
 
-    /*
-     * IMPORTANT:
-     *
-     * The offscreen canvas represents ONLY
-     * the actual crochet pattern.
-     */
-
     offscreen.width =
         patternWidth;
 
@@ -1787,9 +2158,6 @@ function discretizePattern() {
         );
 
 
-    /*
-     * White background.
-     */
     offCtx.fillStyle =
         "white";
 
@@ -1801,12 +2169,6 @@ function discretizePattern() {
         patternHeight
     );
 
-
-    /*
-     * --------------------------------------------------------
-     * RENDER ALL OBJECTS
-     * --------------------------------------------------------
-     */
 
     for (
         const flower of flowers
@@ -1861,12 +2223,9 @@ function discretizePattern() {
 
 
         offCtx.drawImage(
-
             img,
-
             -width / 2,
             -height / 2,
-
             width,
             height
         );
@@ -1876,9 +2235,6 @@ function discretizePattern() {
     }
 
 
-    /*
-     * Get rendered pixels.
-     */
     const imageData =
         offCtx.getImageData(
             0,
@@ -1910,20 +2266,11 @@ function discretizePattern() {
 
 
     const bg = {
-
         r: 255,
-
         g: 255,
-
         b: 255
     };
 
-
-    /*
-     * --------------------------------------------------------
-     * DETERMINE CELL VALUES
-     * --------------------------------------------------------
-     */
 
     for (
         let row = 0;
@@ -2016,9 +2363,6 @@ function discretizePattern() {
                         ];
 
 
-                    /*
-                     * Transparent pixels are background.
-                     */
                     if (
                         a < 20
                     ) {
@@ -2077,14 +2421,6 @@ function discretizePattern() {
     }
 
 
-    /*
-     * IMPORTANT:
-     *
-     * DO NOT reverse the rows.
-     *
-     * This preserves the original PNG orientation.
-     */
-
     return pattern;
 }
 
@@ -2104,9 +2440,6 @@ function drawDiscretizedPattern() {
         ny;
 
 
-    /*
-     * White background.
-     */
     ctx.fillStyle =
         "white";
 
@@ -2120,11 +2453,8 @@ function drawDiscretizedPattern() {
 
 
     /*
-     * --------------------------------------------------------
      * BLACK CELLS
-     * --------------------------------------------------------
      */
-
     for (
         let row = 0;
         row < ny;
@@ -2163,11 +2493,8 @@ function drawDiscretizedPattern() {
 
 
     /*
-     * --------------------------------------------------------
-     * GRAY GRIDLINES
-     * --------------------------------------------------------
+     * GRIDLINES
      */
-
     ctx.strokeStyle =
         "#999999";
 
@@ -2177,9 +2504,6 @@ function drawDiscretizedPattern() {
     ctx.beginPath();
 
 
-    /*
-     * Vertical.
-     */
     for (
         let i = 0;
         i <= nx;
@@ -2205,9 +2529,6 @@ function drawDiscretizedPattern() {
     }
 
 
-    /*
-     * Horizontal.
-     */
     for (
         let j = 0;
         j <= ny;
@@ -2237,17 +2558,13 @@ function drawDiscretizedPattern() {
 
 
     /*
-     * --------------------------------------------------------
      * NUMBERS
-     * --------------------------------------------------------
      */
-
     ctx.fillStyle =
         "black";
 
     ctx.font =
         "bold 12px Arial";
-
 
     ctx.textBaseline =
         "middle";
@@ -2268,38 +2585,26 @@ function drawDiscretizedPattern() {
             cellHeight / 2;
 
 
-        /*
-         * Left.
-         */
         ctx.textAlign =
             "right";
 
 
         ctx.fillText(
-
             String(row + 1),
-
             patternX - 7,
-
             y
         );
 
 
-        /*
-         * Right.
-         */
         ctx.textAlign =
             "left";
 
 
         ctx.fillText(
-
             String(row + 1),
-
             patternX +
             patternWidth +
             7,
-
             y
         );
     }
@@ -2320,9 +2625,6 @@ function drawDiscretizedPattern() {
             cellWidth / 2;
 
 
-        /*
-         * Top.
-         */
         ctx.textAlign =
             "center";
 
@@ -2331,28 +2633,19 @@ function drawDiscretizedPattern() {
 
 
         ctx.fillText(
-
             String(col + 1),
-
             x,
-
             patternY - 7
         );
 
 
-        /*
-         * Bottom.
-         */
         ctx.textBaseline =
             "top";
 
 
         ctx.fillText(
-
             String(col + 1),
-
             x,
-
             patternY +
             patternHeight +
             7
@@ -2447,9 +2740,6 @@ function drawRunCounts() {
         "middle";
 
 
-    /*
-     * Every row.
-     */
     for (
         let row = 0;
         row < ny;
@@ -2471,9 +2761,6 @@ function drawRunCounts() {
                 col + 1;
 
 
-            /*
-             * Find end of run.
-             */
             while (
                 end < nx &&
                 discretizedPattern[row][end] === value
@@ -2493,9 +2780,6 @@ function drawRunCounts() {
                 cellHeight / 2;
 
 
-            /*
-             * LEFT
-             */
             if (
                 runDirection === "left"
             ) {
@@ -2518,9 +2802,6 @@ function drawRunCounts() {
             }
 
 
-            /*
-             * RIGHT
-             */
             else if (
                 runDirection === "right"
             ) {
@@ -2544,9 +2825,6 @@ function drawRunCounts() {
             }
 
 
-            /*
-             * BOTH
-             */
             else if (
                 runDirection === "both"
             ) {
@@ -2568,10 +2846,6 @@ function drawRunCounts() {
                     "center";
 
 
-                /*
-                 * For a one-cell run, only print
-                 * the number once.
-                 */
                 if (
                     runLength === 1
                 ) {
@@ -2651,10 +2925,6 @@ function getCanvasCoordinates(
 // ============================================================
 // OBJECT HIT TEST
 // ============================================================
-//
-// This uses the actual dimensions of the PNG instead of
-// the old fixed 100-pixel hit radius.
-// ============================================================
 
 function isPointInsideFlower(
     mouse,
@@ -2684,11 +2954,6 @@ function isPointInsideFlower(
         flower.y *
         patternHeight;
 
-
-    /*
-     * Transform the mouse position into
-     * the object's local coordinate system.
-     */
 
     const dx =
         mouse.x - fx;
@@ -2916,13 +3181,10 @@ canvas.addEventListener(
         let closest =
             -1;
 
-        let closestDistance =
-            Infinity;
-
 
         /*
-         * Iterate backwards so that the object
-         * drawn on top gets selected first.
+         * Iterate backwards so the object
+         * on top gets selected first.
          */
         for (
             let i =
@@ -2976,9 +3238,6 @@ canvas.addEventListener(
                 );
 
 
-            /*
-             * Quick bounding-radius test first.
-             */
             const radius =
                 Math.sqrt(
 
@@ -3016,9 +3275,6 @@ canvas.addEventListener(
 
                 closest =
                     i;
-
-                closestDistance =
-                    distance;
 
                 break;
             }

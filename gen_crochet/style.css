@@ -503,3 +503,286 @@ input[type="range"] {
         max-height: 60vh;
     }
 }
+
+/* ============================================================
+   CUSTOM OBJECT SELECTOR
+   ============================================================ */
+
+.object-selector-container {
+    width: 100%;
+}
+
+
+/* Hide the original HTML select.
+ *
+ * It remains in the DOM because app.js still uses it.
+ */
+.hidden-object-select {
+    display: none;
+}
+
+
+/* ============================================================
+   SELECTOR
+   ============================================================ */
+
+.object-selector {
+    position: relative;
+    width: 100%;
+}
+
+
+/* ============================================================
+   MAIN BUTTON
+   ============================================================ */
+
+.object-selector-button {
+    width: 100%;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    box-sizing: border-box;
+
+    padding: 8px 10px;
+
+    border: 1px solid #aaa;
+
+    border-radius: 4px;
+
+    background: white;
+
+    color: #222;
+
+    font-size: 14px;
+
+    cursor: pointer;
+
+    text-align: left;
+}
+
+
+.object-selector-button:hover {
+    background: #f5f5f5;
+}
+
+
+.object-selector-button:focus {
+    outline: 2px solid #4a90e2;
+
+    outline-offset: 1px;
+}
+
+
+/* ============================================================
+   ARROW
+   ============================================================ */
+
+.object-selector-arrow {
+    margin-left: 8px;
+
+    font-size: 12px;
+
+    transition:
+        transform 0.15s ease;
+}
+
+
+/*
+ * Rotate arrow when menu is open.
+ */
+.object-selector.open
+.object-selector-arrow {
+    transform: rotate(180deg);
+}
+
+
+/* ============================================================
+   DROPDOWN MENU
+   ============================================================ */
+
+.object-selector-menu {
+    position: absolute;
+
+    left: 0;
+
+    right: 0;
+
+    top: calc(100% + 2px);
+
+    z-index: 1000;
+
+    max-height: 300px;
+
+    overflow-y: auto;
+
+    background: white;
+
+    border: 1px solid #aaa;
+
+    border-radius: 4px;
+
+    box-shadow:
+        0 4px 10px rgba(0, 0, 0, 0.15);
+
+    box-sizing: border-box;
+}
+
+
+/* Utility class */
+.object-selector-menu.hidden {
+    display: none;
+}
+
+
+/* ============================================================
+   DEFAULT FOLDER
+   ============================================================ */
+
+.object-default-folder {
+    width: 100%;
+}
+
+
+/*
+ * Folder header.
+ */
+.object-default-folder-header {
+    width: 100%;
+
+    box-sizing: border-box;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    padding: 8px 10px;
+
+    border: none;
+
+    background: #f2f2f2;
+
+    color: #222;
+
+    font-size: 14px;
+
+    font-weight: 600;
+
+    cursor: pointer;
+
+    text-align: left;
+}
+
+
+.object-default-folder-header:hover {
+    background: #e8e8e8;
+}
+
+
+/* Folder icon + name */
+.object-default-folder-name {
+    display: flex;
+
+    align-items: center;
+
+    gap: 7px;
+}
+
+
+/* Folder arrow */
+.object-default-folder-arrow {
+    font-size: 11px;
+
+    transition:
+        transform 0.15s ease;
+}
+
+
+/*
+ * Rotate folder arrow when open.
+ */
+.object-default-folder.open
+.object-default-folder-arrow {
+    transform: rotate(90deg);
+}
+
+
+/* ============================================================
+   DEFAULT IMAGE LIST
+   ============================================================ */
+
+.object-default-folder-items {
+    display: none;
+}
+
+
+/*
+ * Show contents when folder is open.
+ */
+.object-default-folder.open
+.object-default-folder-items {
+    display: block;
+}
+
+
+/* ============================================================
+   OBJECT OPTIONS
+   ============================================================ */
+
+.object-selector-option {
+    width: 100%;
+
+    box-sizing: border-box;
+
+    display: block;
+
+    padding: 7px 10px;
+
+    border: none;
+
+    background: white;
+
+    color: #222;
+
+    font-size: 14px;
+
+    cursor: pointer;
+
+    text-align: left;
+}
+
+
+.object-selector-option:hover {
+    background: #e8f0fe;
+}
+
+
+.object-selector-option.selected {
+    background: #dbe8ff;
+
+    font-weight: 600;
+}
+
+
+/*
+ * Default images are indented to look like
+ * files inside the Default folder.
+ */
+.object-default-folder-items
+.object-selector-option {
+    padding-left: 30px;
+}
+
+
+/* ============================================================
+   UPLOADED OBJECTS
+   ============================================================ */
+
+.object-uploaded-option {
+    border-top: 1px solid #eee;
+}

@@ -240,13 +240,71 @@
 
                 <div class="control-row">
 
-                    <label for="flowerSelect">
+                    <div class="object-selector-container">
+
+                    <label>Object</label>
+
+                    <!--
+                        The original select is kept hidden.
+
+                        app.js continues to use flowerSelect.value,
+                        flowerSelect.selectedIndex, etc., so the rest
+                        of the application does not need to change.
+                    -->
+                    <select id="flowerSelect" class="hidden-object-select"></select>
+
+
+                    <!-- =====================================================
+                        CUSTOM OBJECT SELECTOR
+                        ===================================================== -->
+
+                    <div
+                        id="objectSelector"
+                        class="object-selector"
+                    >
+
+                        <!-- Current selection -->
+                        <button
+                            type="button"
+                            id="objectSelectorButton"
+                            class="object-selector-button"
+                        >
+                            <span id="objectSelectorText">
+                                Select object
+                            </span>
+
+                            <span
+                                id="objectSelectorArrow"
+                                class="object-selector-arrow"
+                            >
+                                ▾
+                            </span>
+                        </button>
+
+
+                        <!-- Dropdown menu -->
+                        <div
+                            id="objectSelectorMenu"
+                            class="object-selector-menu hidden"
+                        >
+
+                            <!--
+                                app.js will populate this.
+                            -->
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                    <!-- <label for="flowerSelect">
                         Object
                     </label>
 
                     <select id="flowerSelect">
 
-                    </select>
+                    </select> -->
 
                 </div>
 
