@@ -764,11 +764,80 @@ function updateObjectDropdown() {
     }
 
 
-    /*
-     * Add every available image.
-     */
+    // ========================================================
+    // DEFAULT IMAGES
+    // ========================================================
+
+    const defaultObjects =
+        objectLibrary.filter(
+            object =>
+                object.source === "default"
+        );
+
+
+    if (
+        defaultObjects.length > 0
+    ) {
+
+        const defaultGroup =
+            document.createElement(
+                "optgroup"
+            );
+
+
+        defaultGroup.label =
+            "Default";
+
+
+        for (
+            const object of defaultObjects
+        ) {
+
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+
+            option.value =
+                object.id;
+
+
+            option.textContent =
+                object.name;
+
+
+            defaultGroup.appendChild(
+                option
+            );
+        }
+
+
+        flowerSelect.appendChild(
+            defaultGroup
+        );
+    }
+
+
+    // ========================================================
+    // UPLOADED IMAGES
+    // ========================================================
+    //
+    // Uploaded images are intentionally NOT placed
+    // inside an "Uploaded" group.
+    //
+    // They appear directly in the dropdown.
+    // ========================================================
+
+    const uploadedObjects =
+        objectLibrary.filter(
+            object =>
+                object.source === "uploaded"
+        );
+
+
     for (
-        const object of objectLibrary
+        const object of uploadedObjects
     ) {
 
         const option =
@@ -782,12 +851,7 @@ function updateObjectDropdown() {
 
 
         option.textContent =
-            object.name +
-            (
-                object.source === "default"
-                    ? " (default)"
-                    : " (uploaded)"
-            );
+            object.name;
 
 
         flowerSelect.appendChild(
@@ -796,9 +860,10 @@ function updateObjectDropdown() {
     }
 
 
-    /*
-     * Restore selection if possible.
-     */
+    // ========================================================
+    // RESTORE PREVIOUS SELECTION
+    // ========================================================
+
     const stillExists =
         objectLibrary.some(
             object =>
@@ -813,7 +878,9 @@ function updateObjectDropdown() {
         flowerSelect.value =
             previousValue;
 
-    } else {
+    } else if (
+        flowerSelect.options.length > 0
+    ) {
 
         flowerSelect.selectedIndex =
             0;
