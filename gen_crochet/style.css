@@ -503,3 +503,310 @@ input[type="range"] {
         max-height: 60vh;
     }
 }
+/* ============================================================
+   CUSTOM OBJECT SELECTOR
+   ============================================================ */
+
+.object-selector {
+    position: relative;
+    width: 100%;
+}
+
+
+/* ============================================================
+   MAIN SELECTOR BUTTON
+   ============================================================ */
+
+.object-selector-button {
+    width: 100%;
+
+    min-height: 38px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    padding: 6px 9px;
+
+    border: 1px solid #aaa;
+
+    border-radius: 4px;
+
+    background: white;
+
+    color: #222;
+
+    font-size: 14px;
+
+    cursor: pointer;
+
+    text-align: left;
+}
+
+
+.object-selector-button:hover {
+    background: #f5f5f5;
+}
+
+
+.object-selector-button:focus {
+    outline: 2px solid #4a90e2;
+
+    outline-offset: 1px;
+}
+
+
+/* ============================================================
+   SELECTED OBJECT THUMBNAIL
+   ============================================================ */
+
+.object-selector-thumbnail {
+    width: 28px;
+    height: 28px;
+
+    object-fit: contain;
+
+    flex-shrink: 0;
+}
+
+
+/* ============================================================
+   SELECTED OBJECT NAME
+   ============================================================ */
+
+.object-selector-name {
+    flex: 1;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+}
+
+
+/* ============================================================
+   SELECTOR ARROW
+   ============================================================ */
+
+.object-selector-arrow {
+    margin-left: auto;
+
+    font-size: 11px;
+
+    flex-shrink: 0;
+
+    transition: transform 0.15s ease;
+}
+
+
+/*
+ * Rotate arrow when selector is open.
+ */
+.object-selector.open
+.object-selector-arrow {
+    transform: rotate(180deg);
+}
+
+
+/* ============================================================
+   DROPDOWN MENU
+   ============================================================ */
+
+.object-selector-menu {
+    position: absolute;
+
+    left: 0;
+    right: 0;
+
+    top: calc(100% + 2px);
+
+    z-index: 1000;
+
+    max-height: 300px;
+
+    overflow-y: auto;
+
+    background: white;
+
+    border: 1px solid #aaa;
+
+    border-radius: 4px;
+
+    box-shadow:
+        0 4px 10px rgba(0, 0, 0, 0.15);
+
+    display: none;
+}
+
+
+/*
+ * Menu is visible when selector is open.
+ */
+.object-selector-menu.open {
+    display: block;
+}
+
+
+/* ============================================================
+   DEFAULT FOLDER
+   ============================================================ */
+
+.object-folder {
+    width: 100%;
+}
+
+
+/* ============================================================
+   DEFAULT FOLDER HEADER
+   ============================================================ */
+
+.object-folder-header {
+    width: 100%;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    padding: 9px 10px;
+
+    border: none;
+
+    border-radius: 0;
+
+    background: #f2f2f2;
+
+    color: #222;
+
+    font-size: 14px;
+
+    font-weight: 600;
+
+    cursor: pointer;
+
+    text-align: left;
+}
+
+
+.object-folder-header:hover {
+    background: #e8e8e8;
+}
+
+
+/* ============================================================
+   FOLDER ARROW
+   ============================================================ */
+
+.folder-arrow {
+    width: 14px;
+
+    flex-shrink: 0;
+
+    font-size: 11px;
+
+    text-align: center;
+}
+
+
+/* ============================================================
+   FOLDER CONTENTS
+   ============================================================ */
+
+.object-folder-contents {
+    display: block;
+}
+
+
+/*
+ * This is what makes the Default folder
+ * start CLOSED.
+ */
+.object-folder-contents.collapsed {
+    display: none;
+}
+
+
+/* ============================================================
+   OBJECT MENU ITEMS
+   ============================================================ */
+
+.object-menu-item {
+    width: 100%;
+
+    min-height: 38px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 9px;
+
+    padding: 5px 10px 5px 30px;
+
+    border: none;
+
+    border-radius: 0;
+
+    background: white;
+
+    color: #222;
+
+    font-size: 13px;
+
+    cursor: pointer;
+
+    text-align: left;
+}
+
+
+.object-menu-item:hover {
+    background: #e8f0fe;
+}
+
+
+/* ============================================================
+   OBJECT THUMBNAILS
+   ============================================================ */
+
+.object-menu-thumbnail {
+    width: 28px;
+    height: 28px;
+
+    object-fit: contain;
+
+    flex-shrink: 0;
+}
+
+
+/* ============================================================
+   OBJECT NAMES
+   ============================================================ */
+
+.object-menu-name {
+    flex: 1;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+}
+
+
+/* ============================================================
+   EMPTY MENU
+   ============================================================ */
+
+.object-menu-empty {
+    padding: 12px;
+
+    color: #666;
+
+    font-size: 13px;
+
+    text-align: center;
+}
