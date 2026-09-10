@@ -131,11 +131,12 @@
     <button id="resetBuzzersBtn" class="btn">Reset Buzzers</button>
     <button id="resetBustsBtn" class="btn">Reset Busts</button>
     <button id="resetCashesBtn" class="btn">Reset Cashes</button>
+    <button id="resetPrematuresBtn" class="btn">Reset Prematures</button>
     <button id="resetRoundsBtn" class="btn">Reset Rounds</button>
     <h3>Total Guests: <span id="guestCount">0</span></h3>
     <table>
       <thead>
-        <tr><th>Hoe</th><th>Pull Out?</th><th>Busts</th><th>Cashes</th><th>Score</th><th></th></tr>
+        <tr><th>Hoe</th><th>Pull Out?</th><th>Busts</th><th>Cashes</th><th>Prematures</th><th>Score</th><th></th></tr>
       </thead>
       <tbody id="scoreboardBody"></tbody>
     </table>
@@ -183,6 +184,7 @@
     const removeAllBtn = document.getElementById('removeAllBtn');
     const resetBustsBtn = document.getElementById('resetBustsBtn');
     const resetCashesBtn = document.getElementById('resetCashesBtn');
+    const resetPrematuresBtn = document.getElementById('resetPrematuresBtn');
     const resetRoundsBtn = document.getElementById('resetRoundsBtn');
     const majorityLight = document.getElementById('majorityLight');
     const cashBtn = document.getElementById('cashBtn');
@@ -212,7 +214,7 @@
 
       guestsSnap.forEach(child => {
         const data = child.val();
-        const score = (data.cashes || 0) - (data.busts || 0);
+        const score = (data.cashes || 0) - (data.busts || 0) - (data.prematures || 0);
         scores[child.key] = score;
         if (score > maxScore) maxScore = score;
       });
@@ -259,7 +261,7 @@
     submitNameBtn.onclick = async () => {
       const name = guestNameInput.value.trim();
       if (!name) return;
-      const newEntry = await push(ref(db, 'guests'), { name, pressed: false, busts: 0, cashes: 0 });
+      const newEntry = await push(ref(db, 'guests'), { name, pressed: false, busts: 0, cashes: 0, prematures: 0 });
       currentGuestKey = newEntry.key;
       guestNameScreen.classList.add('hidden');
       buzzerScreen.classList.remove('hidden');
@@ -276,11 +278,28 @@
 
     buzzer.onclick = async () => {
       if (!currentGuestKey) return;
+      const guestsSnap = await get(ref(db, 'guests'));
+      let anyPressed = false;
+
+      guestsSnap.forEach(child => {
+        if (child.val().pressed) {
+          anyPressed = true;
+        }
+      });
+
       const guestRef = ref(db, `guests/${currentGuestKey}`);
       const snap = await get(guestRef);
       const data = snap.val();
+
       if (!data.pressed) {
-        await update(guestRef, { pressed: true });
+        const updates = { pressed: true };
+
+        // First person to buzz in gets a premature point
+        if (!anyPressed) {
+          updates.prematures = (data.prematures || 0) + 1;
+        }
+
+        await update(guestRef, updates);
         buzzer.style.backgroundColor = 'green';
       }
     };
@@ -306,6 +325,12 @@
     resetCashesBtn.onclick = async () => {
       const guestsSnap = await get(ref(db, 'guests'));
       guestsSnap.forEach(child => { update(ref(db, `guests/${child.key}`), { cashes: 0 }); });
+      renderScoreboard();
+    };
+
+    resetPrematuresBtn.onclick = async () => {
+      const guestsSnap = await get(ref(db, 'guests'));
+      guestsSnap.forEach(child => { update(ref(db, `guests/${child.key}`), { prematures: 0 }); });
       renderScoreboard();
     };
 
@@ -345,6 +370,7 @@
 
           const busts = data.busts || 0;
           const cashes = data.cashes || 0;
+          const prematures = data.prematures || 0;
 
           // ⭐ WINNER LOGIC
           if (winners[key]) {
@@ -366,7 +392,12 @@
               <span id='cash-${key}'>${cashes}</span>
               <button class='btn' onclick='adjustCash("${key}", 1)'>+</button>
             </td>
-            <td>${cashes - busts}</td>
+            <td>
+              <button class='btn' onclick='adjustPremature("${key}", -1)'>-</button>
+              <span id='premature-${key}'>${prematures}</span>
+              <button class='btn' onclick='adjustPremature("${key}", 1)'>+</button>
+            </td>
+            <td>${cashes - busts - prematures}</td>
             <td><button class='btn' onclick='removeGuest("${key}")'>Remove</button></td>
           `;
 
@@ -396,6 +427,15 @@
       const current = snap.val().cashes || 0;
       const newCount = Math.max(0, current + delta);
       await update(guestRef, { cashes: newCount });
+      renderScoreboard();
+    };
+
+    window.adjustPremature = async (key, delta) => {
+      const guestRef = ref(db, `guests/${key}`);
+      const snap = await get(guestRef);
+      const current = snap.val().prematures || 0;
+      const newCount = Math.max(0, current + delta);
+      await update(guestRef, { prematures: newCount });
       renderScoreboard();
     };
 
@@ -475,6 +515,7 @@
         updates[`${child.key}/pressed`] = false;
         updates[`${child.key}/busts`] = 0;
         updates[`${child.key}/cashes`] = 0;
+        updates[`${child.key}/prematures`] = 0;
       });
 
       await update(guestsRef, updates);
@@ -569,7 +610,7 @@
         const data = child.val();
         sortOrder.push({
           key: child.key,
-          score: (data.cashes || 0) - (data.busts || 0)
+          score: (data.cashes || 0) - (data.busts || 0) - (data.prematures || 0)
         });
       });
 
